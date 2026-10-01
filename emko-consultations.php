@@ -3,7 +3,7 @@
  * Plugin Name: Emko Consultations & Telemost Booking
  * Plugin URI:  https://emko.ru
  * Description: Запись на консультации с автоматической интеграцией в Яндекс Календарь, Яндекс Телемост и GetCourse.
- * Version:     1.0.0
+ * Version:     1.1.0
  * Author:      ЁМКО
  * Text Domain: emko-consultations
  */
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('EMKO_BOOKING_VERSION', '1.0.0');
+define('EMKO_BOOKING_VERSION', '1.1.0');
 define('EMKO_BOOKING_DIR', plugin_dir_path(__FILE__));
 define('EMKO_BOOKING_URL', plugin_dir_url(__FILE__));
 
