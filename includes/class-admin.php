@@ -382,7 +382,7 @@ class Emko_Admin_Settings {
                     );
                     $daysName = array(1 => 'Понедельник', 2 => 'Вторник', 3 => 'Среда', 4 => 'Четверг', 5 => 'Пятница', 6 => 'Суббота', 7 => 'Воскресенье');
                 ?>
-                    <div class="card" style="padding:24px;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+                    <div class="card" style="max-width:none;padding:24px;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,0.06);box-sizing:border-box;">
                         <h2><?php echo $editId ? 'Редактировать преподавателя' : 'Добавить нового преподавателя'; ?></h2>
                         <form method="POST">
                             <?php wp_nonce_field('emko_teacher_nonce'); ?>
@@ -581,7 +581,7 @@ class Emko_Admin_Settings {
             <!-- ВКЛАДКА 2: КАЛЕНДАРИ ЯНДЕКСА                                  -->
             <!-- ============================================================= -->
             <?php elseif ($tab === 'calendars'): ?>
-                <div class="card" style="padding:24px;border-radius:10px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+                <div class="card" style="max-width:none;padding:24px;border-radius:10px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,0.06);box-sizing:border-box;">
                     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px;margin-bottom:15px;">
                         <div>
                             <h2 style="margin:0 0 4px 0;">Управление календарями Яндекса</h2>
@@ -603,7 +603,7 @@ class Emko_Admin_Settings {
                     <table class="widefat fixed striped" style="margin-top:15px;border-radius:6px;overflow:hidden;">
                         <thead>
                             <tr>
-                                <th style="width:220px;">Название календаря</th>
+                                <th style="width:200px;">Название календаря</th>
                                 <th>CalDAV URL / Идентификатор</th>
                                 <th style="width:220px;">Привязан к преподавателю</th>
                                 <th style="width:110px;">Действие</th>
@@ -624,7 +624,7 @@ class Emko_Admin_Settings {
                                 ?>
                                     <tr data-href="<?php echo esc_attr($c['href']); ?>">
                                         <td><strong><?php echo esc_html($c['name']); ?></strong></td>
-                                        <td><code><?php echo esc_html($c['href']); ?></code></td>
+                                        <td style="word-break:break-all;"><code><?php echo esc_html($c['href']); ?></code></td>
                                         <td>
                                             <?php if (!empty($assignedTeachers)): ?>
                                                 <span style="color:#166534;font-weight:600;">✓ <?php echo esc_html(implode(', ', $assignedTeachers)); ?></span>
@@ -653,7 +653,7 @@ class Emko_Admin_Settings {
                 </div>
 
                 <!-- Понятная инструкция по добавлению календарей в Яндекс -->
-                <div class="card" style="padding:20px;border-radius:10px;background:#f8fafc;border:1px solid #e2e8f0;">
+                <div class="card" style="max-width:none;padding:20px;border-radius:10px;background:#f8fafc;border:1px solid #e2e8f0;box-sizing:border-box;">
                     <h3 style="margin-top:0;">💡 Как создать отдельный календарь для нового преподавателя:</h3>
                     <ol style="margin-left:20px;line-height:1.8;color:#334155;">
                         <li>Перейдите в веб-интерфейс <a href="https://calendar.yandex.ru" target="_blank">calendar.yandex.ru</a> под аккаунтом <strong><?php echo esc_html($yEmail ?: 'вашим Яндекс аккаунтом'); ?></strong>.</li>
@@ -767,7 +767,7 @@ class Emko_Admin_Settings {
             <!-- ВКЛАДКА 3: НАСТРОЙКИ (ЯНДЕКС И GETCOURSE)                     -->
             <!-- ============================================================= -->
             <?php elseif ($tab === 'settings'): ?>
-                <div class="card" style="padding:24px;border-radius:10px;margin-bottom:24px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+                <div class="card" style="max-width:none;padding:24px;border-radius:10px;margin-bottom:24px;box-shadow:0 1px 3px rgba(0,0,0,0.06);box-sizing:border-box;">
                     <form method="POST">
                         <?php wp_nonce_field('emko_settings_nonce'); ?>
 
@@ -898,7 +898,7 @@ class Emko_Admin_Settings {
             <!-- ВКЛАДКА 4: ИНСТРУКЦИЯ И СВЯЗКА С GETCOURSE                    -->
             <!-- ============================================================= -->
             <?php elseif ($tab === 'instructions'): ?>
-                <div class="card" style="padding:24px;border-radius:10px;line-height:1.7;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+                <div class="card" style="max-width:none;padding:24px;border-radius:10px;line-height:1.7;box-shadow:0 1px 3px rgba(0,0,0,0.06);box-sizing:border-box;">
                     <h2 style="margin-top:0;">Полная механика и связка с GetCourse</h2>
 
                     <h3>Шаг 1. Размещение виджета на странице сайта WordPress</h3>
