@@ -3,6 +3,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (!class_exists('Emko_Booking_API')) {
 class Emko_Booking_API {
     public function __construct() {
         add_action('rest_api_init', array($this, 'register_routes'));
@@ -226,3 +227,5 @@ class Emko_Booking_API {
         ));
     }
 }
+}
+

@@ -3,6 +3,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (!class_exists('Emko_Admin_Settings')) {
 class Emko_Admin_Settings {
     public function __construct() {
         add_action('admin_menu', array($this, 'add_menu_page'));
@@ -20,12 +21,12 @@ class Emko_Admin_Settings {
     public function add_menu_page() {
         add_menu_page(
             'Запись на консультации',
-            'Консультации',
+            'Запись ЁМКО',
             'manage_options',
             'emko-consultations',
             array($this, 'render_admin_page'),
             'dashicons-calendar-alt',
-            26
+            28
         );
     }
 
@@ -956,3 +957,5 @@ class Emko_Admin_Settings {
         <?php
     }
 }
+}
+

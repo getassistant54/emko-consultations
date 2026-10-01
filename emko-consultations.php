@@ -16,12 +16,14 @@ define('EMKO_BOOKING_VERSION', '1.0.0');
 define('EMKO_BOOKING_DIR', plugin_dir_path(__FILE__));
 define('EMKO_BOOKING_URL', plugin_dir_url(__FILE__));
 
-// Подключаем модули
-require_once EMKO_BOOKING_DIR . 'includes/class-caldav.php';
-require_once EMKO_BOOKING_DIR . 'includes/class-getcourse.php';
-require_once EMKO_BOOKING_DIR . 'includes/class-api.php';
-require_once EMKO_BOOKING_DIR . 'includes/class-admin.php';
+// Подключаем модули (с поддержкой как вложенной, так и плоской структуры)
+$emko_inc = file_exists(EMKO_BOOKING_DIR . 'includes/class-caldav.php') ? (EMKO_BOOKING_DIR . 'includes/') : EMKO_BOOKING_DIR;
+require_once $emko_inc . 'class-caldav.php';
+require_once $emko_inc . 'class-getcourse.php';
+require_once $emko_inc . 'class-api.php';
+require_once $emko_inc . 'class-admin.php';
 
+if (!class_exists('Emko_Consultations_Plugin')) {
 class Emko_Consultations_Plugin {
     private static $instance = null;
 
@@ -129,16 +131,18 @@ class Emko_Consultations_Plugin {
     }
 
     public function render_booking_shortcode($atts) {
+        $assets_url = file_exists(EMKO_BOOKING_DIR . 'assets/booking-widget.css') ? (EMKO_BOOKING_URL . 'assets/') : EMKO_BOOKING_URL;
+
         wp_enqueue_style(
             'emko-booking-css',
-            EMKO_BOOKING_URL . 'assets/booking-widget.css',
+            $assets_url . 'booking-widget.css',
             array(),
             EMKO_BOOKING_VERSION
         );
 
         wp_enqueue_script(
             'emko-booking-js',
-            EMKO_BOOKING_URL . 'assets/booking-widget.js',
+            $assets_url . 'booking-widget.js',
             array(),
             EMKO_BOOKING_VERSION,
             true
@@ -247,6 +251,7 @@ class Emko_Consultations_Plugin {
         <?php
         return ob_get_clean();
     }
+}
 }
 
 Emko_Consultations_Plugin::get_instance();

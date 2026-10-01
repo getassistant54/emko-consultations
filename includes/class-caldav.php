@@ -3,6 +3,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (!class_exists('Emko_CalDAV_Client')) {
 class Emko_CalDAV_Client {
     private $email;
     private $password;
@@ -227,3 +228,5 @@ class Emko_CalDAV_Client {
         );
     }
 }
+}
+

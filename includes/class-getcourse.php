@@ -3,6 +3,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (!class_exists('Emko_GetCourse_Client')) {
 class Emko_GetCourse_Client {
     private $account;
     private $secretKey;
@@ -105,3 +106,5 @@ class Emko_GetCourse_Client {
         return array('success' => false, 'error' => 'Некорректный ответ от GetCourse (HTTP ' . $code . ')');
     }
 }
+}
+
