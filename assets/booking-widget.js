@@ -4,11 +4,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const apiBase = window.emkoBookingConfig?.apiUrl || '/wp-json/emko-booking/v1';
 
-    // Parse URL params for GetCourse pass-through
+    // Parse URL params for GetCourse order pass-through
     const urlParams = new URLSearchParams(window.location.search);
     const preselectedTeacher = urlParams.get('teacher');
     const prefillName = urlParams.get('name') || '';
     const prefillEmail = urlParams.get('email') || '';
+    const dealId = urlParams.get('deal_id') || urlParams.get('order_id') || urlParams.get('deal') || '';
+    const isDemo = urlParams.has('demo') || urlParams.has('test') || urlParams.has('preview');
+
     let prefillPhone = urlParams.get('phone') || urlParams.get('user_phone') || '';
     if (!prefillPhone) {
         const rawMatch = window.location.search.match(/(?:\+|%2B)?([78]\d{10})/);
@@ -17,25 +20,56 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    // Timezone detection
+    const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Moscow';
+    const cityRaw = userTz.split('/').pop().replace(/_/g, ' ');
+    const userCity = cityRaw === 'Moscow' ? 'Москва' : cityRaw;
+
+    // Test if user timezone is same as Moscow
+    const nowSample = new Date();
+    const mskSample = nowSample.toLocaleTimeString('ru-RU', { timeZone: 'Europe/Moscow', hour: '2-digit', minute: '2-digit' });
+    const localSample = nowSample.toLocaleTimeString('ru-RU', { timeZone: userTz, hour: '2-digit', minute: '2-digit' });
+    const isMskTimezone = (mskSample === localSample && (userTz === 'Europe/Moscow' || userTz.includes('Moscow')));
+
+    // Helper: format slot times in both local and Moscow
+    function getSlotTimes(ts) {
+        const ms = (ts > 1e11 ? ts : ts * 1000);
+        const d = new Date(ms);
+        const mskStr = d.toLocaleTimeString('ru-RU', { timeZone: 'Europe/Moscow', hour: '2-digit', minute: '2-digit' });
+        const localStr = d.toLocaleTimeString('ru-RU', { timeZone: userTz, hour: '2-digit', minute: '2-digit' });
+        return { ms, mskStr, localStr, isSame: isMskTimezone };
+    }
+
     // State
     let state = {
         teacher: null,
         date: null,
+        dateFormatted: null,
         slot: null,
+        dealId: dealId,
         name: prefillName,
         email: prefillEmail,
         phone: prefillPhone,
         note: ''
     };
 
+    const stepGate = root.querySelector('#emko-step-gate');
     const stepTeacher = root.querySelector('#emko-step-teacher');
     const stepDateTime = root.querySelector('#emko-step-datetime');
     const stepForm = root.querySelector('#emko-step-form');
     const stepSuccess = root.querySelector('#emko-step-success');
 
     function showStep(stepEl) {
+        if (!stepEl) return;
         root.querySelectorAll('.emko-step').forEach(s => s.classList.remove('active'));
         stepEl.classList.add('active');
+        stepEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // 0. Check Gate: Require paid order (deal_id) or demo mode
+    if (!dealId && !isDemo) {
+        showStep(stepGate);
+        return;
     }
 
     // 1. Load Teachers
@@ -46,6 +80,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (!teachers || teachers.length === 0) {
                 stepTeacher.innerHTML = '<p class="emko-empty-slots">В настоящий момент нет доступных преподавателей для записи.</p>';
+                showStep(stepTeacher);
                 return;
             }
 
@@ -109,33 +144,56 @@ document.addEventListener('DOMContentLoaded', function () {
             const mm = String(d.getMonth() + 1).padStart(2, '0');
             const dd = String(d.getDate()).padStart(2, '0');
             const dateStr = `${yyyy}-${mm}-${dd}`;
+            const dateFmt = `${d.getDate()} ${months[d.getMonth()]}`;
 
             const btn = document.createElement('div');
             btn.className = `emko-date-btn ${i === 0 ? 'active' : ''}`;
             btn.dataset.date = dateStr;
+            btn.dataset.formatted = dateFmt;
             btn.innerHTML = `
                 <div class="emko-day-name">${dayNames[d.getDay()]}</div>
-                <div class="emko-day-num">${d.getDate()} ${months[d.getMonth()]}</div>
+                <div class="emko-day-num">${dateFmt}</div>
             `;
             btn.addEventListener('click', () => {
                 strip.querySelectorAll('.emko-date-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 state.date = dateStr;
+                state.dateFormatted = dateFmt;
                 loadSlots(dateStr);
             });
             strip.appendChild(btn);
 
             if (i === 0) {
                 state.date = dateStr;
+                state.dateFormatted = dateFmt;
                 loadSlots(dateStr);
             }
         }
     }
 
-    // 3. Load Slots
+    // 3. Load Slots & Render Timezone Information
     async function loadSlots(dateStr) {
         const grid = root.querySelector('.emko-slots-grid');
         grid.innerHTML = '<div class="emko-empty-slots">Загрузка слотов...</div>';
+
+        // Render Timezone Banner
+        const tzBar = root.querySelector('#emko-tz-bar');
+        if (tzBar) {
+            if (isMskTimezone) {
+                tzBar.innerHTML = `
+                    <div class="emko-tz-pill">
+                        <span>🕒 Время слотов указано по <strong>Москве (МСК, UTC+3)</strong></span>
+                    </div>
+                `;
+            } else {
+                tzBar.innerHTML = `
+                    <div class="emko-tz-pill emko-tz-diff">
+                        <div>🌐 Ваше местное время: <strong>${userCity}</strong> (показано крупным шрифтом)</div>
+                        <div class="emko-tz-sub">Снизу на кнопках указано время преподавателя по Москве (МСК)</div>
+                    </div>
+                `;
+            }
+        }
 
         try {
             const res = await fetch(`${apiBase}/slots?teacher_id=${state.teacher.id}&date=${dateStr}`);
@@ -146,11 +204,24 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            grid.innerHTML = data.slots.map(s => `
-                <button type="button" class="emko-slot-btn" data-ts="${s.timestamp}" data-time="${s.time}">
-                    ${s.time}
-                </button>
-            `).join('');
+            grid.innerHTML = data.slots.map(s => {
+                const times = getSlotTimes(s.timestamp);
+                if (times.isSame) {
+                    return `
+                        <button type="button" class="emko-slot-btn" data-ts="${s.timestamp}" data-msk="${times.mskStr}" data-local="${times.localStr}">
+                            <span class="emko-slot-time">${times.mskStr}</span>
+                            <span class="emko-slot-local-time">МСК</span>
+                        </button>
+                    `;
+                } else {
+                    return `
+                        <button type="button" class="emko-slot-btn emko-slot-tz" data-ts="${s.timestamp}" data-msk="${times.mskStr}" data-local="${times.localStr}">
+                            <span class="emko-slot-time">${times.localStr}</span>
+                            <span class="emko-slot-local-time">${times.mskStr} МСК</span>
+                        </button>
+                    `;
+                }
+            }).join('');
 
             grid.querySelectorAll('.emko-slot-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
@@ -158,7 +229,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     btn.classList.add('selected');
                     state.slot = {
                         timestamp: btn.dataset.ts,
-                        time: btn.dataset.time
+                        mskTime: btn.dataset.msk,
+                        localTime: btn.dataset.local,
+                        isSame: isMskTimezone
                     };
                     goToForm();
                 });
@@ -170,12 +243,38 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 4. Form Step
     function goToForm() {
-        root.querySelector('#emko-form-details').textContent = 
-            `${state.teacher.name} • ${state.date} в ${state.slot.time}`;
+        const timeHtml = state.slot.isSame 
+            ? `Время: <strong>${state.slot.mskTime} (МСК)</strong>` 
+            : `Ваше местное время: <strong>${state.slot.localTime}</strong> <span style="color:#6b7280;font-size:13px;">(по Москве: ${state.slot.mskTime} МСК)</span>`;
+
+        root.querySelector('#emko-form-details').innerHTML = 
+            `<strong>${state.teacher.name}</strong> • ${state.dateFormatted || state.date}<br>${timeHtml}`;
+
+        // Deal Badge
+        const dealBadge = root.querySelector('#emko-deal-badge');
+        if (dealBadge) {
+            if (state.dealId) {
+                dealBadge.style.display = 'block';
+                dealBadge.innerHTML = `✓ Заказ №${state.dealId} подтвержден в GetCourse`;
+            } else if (isDemo) {
+                dealBadge.style.display = 'block';
+                dealBadge.innerHTML = `ℹ️ Тестовый демонстрационный режим (без GetCourse)`;
+            } else {
+                dealBadge.style.display = 'none';
+            }
+        }
 
         // Populate prefill fields
         if (state.name) root.querySelector('#emko-input-name').value = state.name;
-        if (state.email) root.querySelector('#emko-input-email').value = state.email;
+        if (state.email) {
+            const emailInput = root.querySelector('#emko-input-email');
+            emailInput.value = state.email;
+            if (state.dealId) {
+                // If tied to paid deal, keep email bound
+                emailInput.readOnly = true;
+                emailInput.style.backgroundColor = '#f9fafb';
+            }
+        }
         if (state.phone) root.querySelector('#emko-input-phone').value = state.phone;
 
         showStep(stepForm);
@@ -194,11 +293,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const payload = {
             teacher_id: state.teacher.id,
-            timestamp: state.slot.timestamp,
+            timestamp: parseInt(state.slot.timestamp, 10),
             name: root.querySelector('#emko-input-name').value,
             email: root.querySelector('#emko-input-email').value,
             phone: root.querySelector('#emko-input-phone').value,
-            note: root.querySelector('#emko-input-note').value
+            note: root.querySelector('#emko-input-note').value,
+            deal_id: state.dealId || ''
         };
 
         try {
@@ -210,7 +310,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const result = await res.json();
             if (result.success) {
-                root.querySelector('#emko-success-date').textContent = result.datetime;
+                const dateText = state.slot.isSame 
+                    ? `${result.datetime} (по МСК)` 
+                    : `<strong>${state.slot.localTime}</strong> (по вашему времени)<br><span style="font-size:13px;color:#6b7280;">${result.datetime} по Москве (МСК)</span>`;
+
+                root.querySelector('#emko-success-date').innerHTML = dateText;
                 root.querySelector('#emko-success-teacher').textContent = result.teacher_name;
                 
                 const teleInput = root.querySelector('#emko-success-telemost-url');
@@ -227,8 +331,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
 
                 // Google Calendar Link
-                const sDate = new Date(payload.timestamp);
-                const eDate = new Date(payload.timestamp + (state.teacher.duration || 45) * 60 * 1000);
+                const sMs = (payload.timestamp > 1e11 ? payload.timestamp : payload.timestamp * 1000);
+                const sDate = new Date(sMs);
+                const eDate = new Date(sMs + (state.teacher.duration || 45) * 60 * 1000);
                 const getMskIso = (d) => {
                     const parts = new Intl.DateTimeFormat('en-GB', {
                         timeZone: 'Europe/Moscow',
@@ -244,7 +349,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const sIso = getMskIso(sDate);
                 const eIso = getMskIso(eDate);
                 const gText = encodeURIComponent(`Консультация: ${result.teacher_name}`);
-                const gDetails = encodeURIComponent(`Ссылка на видеовстречу: ${result.telemost_url}\nВремя по Москве (МСК)`);
+                const gDetails = encodeURIComponent(`Ссылка на Яндекс Телемост: ${result.telemost_url}\nВремя по Москве: ${result.datetime}`);
                 const gLoc = encodeURIComponent(result.telemost_url);
                 const gUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${gText}&dates=${sIso}/${eIso}&ctz=Europe/Moscow&details=${gDetails}&location=${gLoc}`;
                 

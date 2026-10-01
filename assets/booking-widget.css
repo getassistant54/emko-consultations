@@ -142,24 +142,72 @@
     color: #374151;
 }
 
+/* Timezone Bar */
+.emko-tz-bar {
+    margin-bottom: 16px;
+}
+.emko-tz-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 13px;
+    color: #374151;
+}
+.emko-tz-pill.emko-tz-diff {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+    color: #1e40af;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    border-radius: 10px;
+    padding: 10px 14px;
+}
+.emko-tz-sub {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 3px;
+}
+
 .emko-slots-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
     gap: 10px;
     margin-bottom: 20px;
 }
 
 .emko-slot-btn {
-    padding: 12px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 6px;
+    min-height: 54px;
     text-align: center;
     border: 1px solid #d1d5db;
     border-radius: 8px;
     background: #f9fafb;
-    font-weight: 600;
-    font-size: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
     color: #1f2937;
+}
+
+.emko-slot-time {
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.emko-slot-local-time {
+    font-size: 11px;
+    color: #6b7280;
+    margin-top: 3px;
+    font-weight: 500;
+    line-height: 1.1;
 }
 
 .emko-slot-btn:hover {
@@ -168,21 +216,44 @@
     border-color: #2563eb;
 }
 
+.emko-slot-btn:hover .emko-slot-local-time,
+.emko-slot-btn.selected .emko-slot-local-time {
+    color: rgba(255, 255, 255, 0.9);
+}
+
 .emko-slot-btn.selected {
     background: #1d4ed8;
     color: #ffffff;
     border-color: #1d4ed8;
 }
 
-.emko-slot-local-time {
-    font-size: 11px;
-    color: #6b7280;
-    margin-top: 2px;
+/* Gate Step */
+.emko-gate-card {
+    text-align: center;
+    padding: 24px 12px;
 }
-
-.emko-slot-btn:hover .emko-slot-local-time,
-.emko-slot-btn.selected .emko-slot-local-time {
-    color: rgba(255, 255, 255, 0.9);
+.emko-gate-icon {
+    font-size: 46px;
+    margin-bottom: 12px;
+}
+.emko-gate-desc {
+    font-size: 15px;
+    color: #4b5563;
+    line-height: 1.6;
+    margin: 0 auto 20px auto;
+    max-width: 520px;
+}
+.emko-gate-notice {
+    background: #fefce8;
+    border: 1px solid #fef08a;
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 13px;
+    color: #854d0e;
+    text-align: left;
+    max-width: 520px;
+    margin: 0 auto;
+    line-height: 1.5;
 }
 
 .emko-empty-slots {

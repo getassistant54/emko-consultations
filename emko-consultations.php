@@ -155,8 +155,31 @@ class Emko_Consultations_Plugin {
         ob_start();
         ?>
         <div class="emko-booking-widget">
+            <!-- Step 0: Gate: Access Only via Paid Order from Email -->
+            <div id="emko-step-gate" class="emko-step">
+                <div class="emko-gate-card">
+                    <div class="emko-gate-icon">🔒</div>
+                    <div class="emko-header">
+                        <h3>Запись доступна после оплаты консультации</h3>
+                        <p>Для записи требуется подтвержденный заказ</p>
+                    </div>
+                    <p class="emko-gate-desc">
+                        Чтобы выбрать дату и время консультации, пожалуйста, <strong>перейдите по персональной ссылке из письма с подтверждением оплаты</strong>. Мы отправили его на вашу электронную почту сразу после оформления заказа на сайте.
+                    </p>
+                    <div class="emko-gate-notice">
+                        💡 <strong>Уже оплатили, но не нашли письмо?</strong><br>
+                        Проверьте папку «Спам» или «Промоакции» в вашей почте. Если письмо не пришло, свяжитесь со службой заботы Академии ЁМКО, и мы сразу отправим вам прямую ссылку.
+                    </div>
+                    <div style="margin-top:24px;">
+                        <a href="https://emko.academy/consultations/" class="emko-btn-primary" style="display:inline-block;text-decoration:none;padding:12px 28px;">
+                            Перейти в каталог консультаций
+                        </a>
+                    </div>
+                </div>
+            </div>
+
             <!-- Step 1: Select Teacher -->
-            <div id="emko-step-teacher" class="emko-step active">
+            <div id="emko-step-teacher" class="emko-step">
                 <div class="emko-header">
                     <h3>Запись на консультацию</h3>
                     <p>Выберите преподавателя, к которому хотите записаться</p>
@@ -176,6 +199,9 @@ class Emko_Consultations_Plugin {
                 
                 <div class="emko-date-strip"></div>
                 
+                <!-- Timezone Bar -->
+                <div class="emko-tz-bar" id="emko-tz-bar"></div>
+
                 <div class="emko-slots-title">Доступное время:</div>
                 <div class="emko-slots-grid"></div>
             </div>
@@ -187,6 +213,9 @@ class Emko_Consultations_Plugin {
                     <h3>Подтверждение записи</h3>
                     <p id="emko-form-details">Детали встречи</p>
                 </div>
+                
+                <div id="emko-deal-badge" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:8px;padding:8px 12px;font-size:13px;margin-bottom:14px;font-weight:600;"></div>
+
                 <form id="emko-booking-form">
                     <div class="emko-form-group">
                         <label>Ваше Имя и Фамилия *</label>
