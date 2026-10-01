@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Интерактивная презентация: Система записи на консультации (Яндекс + GetCourse)</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #10b981;
+            --border: #334155;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 1040px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+            padding-bottom: 30px;
+            border-bottom: 1px solid var(--border);
+        }
+        .badge {
+            display: inline-block;
+            background: rgba(37, 99, 235, 0.2);
+            color: #60a5fa;
+            border: 1px solid #3b82f6;
+            padding: 4px 14px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        h1 {
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .subtitle {
+            font-size: 16px;
+            color: var(--text-muted);
+            max-width: 680px;
+            margin: 0 auto;
+        }
+
+        /* Architecture summary */
+        .arch-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 50px;
+        }
+        .arch-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 20px;
+            text-align: center;
+        }
+        .arch-icon {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        .arch-title {
+            font-weight: 700;
+            font-size: 16px;
+            margin-bottom: 6px;
+        }
+        .arch-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* Steps */
+        .step-block {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 32px;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 16px;
+        }
+        .step-num {
+            width: 38px;
+            height: 38px;
+            background: var(--primary);
+            color: #fff;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        .step-title {
+            font-size: 22px;
+            font-weight: 700;
+        }
+        .step-narrative {
+            background: rgba(15, 23, 42, 0.6);
+            border-left: 4px solid var(--primary);
+            padding: 14px 18px;
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 22px;
+            font-size: 14px;
+            color: #e2e8f0;
+        }
+        .narrative-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: #60a5fa;
+            margin-bottom: 4px;
+        }
+
+        .screenshot-wrap {
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid var(--border);
+            box-shadow: 0 12px 25px rgba(0,0,0,0.4);
+            margin-bottom: 20px;
+            background: #ffffff;
+        }
+        .screenshot-wrap img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .tech-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            font-size: 13px;
+        }
+        .tech-box {
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px;
+        }
+        .tech-box strong {
+            color: var(--accent);
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .tech-details { grid-template-columns: 1fr; }
+            body { padding: 20px 10px; }
+            .step-block { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <span class="badge">Архитектура & Презентация</span>
+        <h1>Интерактивный гид: Запись на консультации</h1>
+        <p class="subtitle">Пошаговый сценарий работы сервиса с авто-интеграцией в Яндекс Календарь, Яндекс Телемост и GetCourse</p>
+    </header>
+
+    <!-- Architecture summary -->
+    <div class="arch-grid">
+        <div class="arch-card">
+            <div class="arch-icon">💳</div>
+            <div class="arch-title">GetCourse</div>
+            <div class="arch-desc">Прием оплаты, создание заказа и персональная ссылка со статусами</div>
+        </div>
+        <div class="arch-card">
+            <div class="arch-icon">📅</div>
+            <div class="arch-title">Яндекс Календарь</div>
+            <div class="arch-desc">Чтение занятых часов по CalDAV и автоматическое бронирование встречи</div>
+        </div>
+        <div class="arch-card">
+            <div class="arch-icon">📹</div>
+            <div class="arch-title">Яндекс Телемост</div>
+            <div class="arch-desc">Автоматическая генерация комнаты видеосвязи без ограничения по времени</div>
+        </div>
+        <div class="arch-card">
+            <div class="arch-icon">⏰</div>
+            <div class="arch-title">Умные таймзоны</div>
+            <div class="arch-desc">Время по Москве + автоматический показ местного времени ученика</div>
+        </div>
+    </div>
+
+    <!-- Step 1 -->
+    <div class="step-block">
+        <div class="step-header">
+            <div class="step-num">1</div>
+            <div class="step-title">Выбор преподавателя</div>
+        </div>
+        <div class="step-narrative">
+            <div class="narrative-label">🎙️ Сценарий для озвучки / презентации:</div>
+            «Студент попадает на главную страницу сервиса, где видит список доступных экспертов и преподавателей. У каждого указана специальность и точная продолжительность сессии. Если студент переходит по ссылке из GetCourse, этот шаг пропускается автоматически».
+        </div>
+        <div class="screenshot-wrap">
+            <img src="screenshots/01_teacher_selection.png" alt="Выбор преподавателя">
+        </div>
+        <div class="tech-details">
+            <div class="tech-box">
+                <strong>Что видит ученик:</strong>
+                Карточки преподавателей с должностями и длительностью сессии.
+            </div>
+            <div class="tech-box">
+                <strong>Что происходит под капотом:</strong>
+                Система связывает выбранного преподавателя с его персональным календарём в вашем Яндекс-аккаунте.
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="step-block">
+        <div class="step-header">
+            <div class="step-num">2</div>
+            <div class="step-title">Выбор даты и времени с двойным часовым поясом</div>
+        </div>
+        <div class="step-narrative">
+            <div class="narrative-label">🎙️ Сценарий для озвучки / презентации:</div>
+            «Студент выбирает удобный день на горизонтальной ленте. Система моментально опрашивает Яндекс Календарь преподавателя и скрывает все занятые часы. Главная фишка: крупно показывается время преподавателя по Москве, а снизу — местное время студента, чтобы исключить опоздания».
+        </div>
+        <div class="screenshot-wrap">
+            <img src="screenshots/02_calendar_and_slots.png" alt="Выбор слотов">
+        </div>
+        <div class="tech-details">
+            <div class="tech-box">
+                <strong>Что видит ученик:</strong>
+                Доступные слоты на выбранный день. Например: 16:00 МСК (20:00 местн.).
+            </div>
+            <div class="tech-box">
+                <strong>Что происходит под капотом:</strong>
+                Запрос по протоколу CalDAV в Яндекс Календарь. Занятые часы отсекаются в реальном времени.
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="step-block">
+        <div class="step-header">
+            <div class="step-num">3</div>
+            <div class="step-title">Форма подтверждения записи</div>
+        </div>
+        <div class="step-narrative">
+            <div class="narrative-label">🎙️ Сценарий для озвучки / презентации:</div>
+            «При переходе из GetCourse имя, email и телефон уже заполнены — студенту остаётся только написать свой вопрос к встрече или сразу подтвердить запись одним кликом».
+        </div>
+        <div class="screenshot-wrap">
+            <img src="screenshots/03_booking_confirmation_form.png" alt="Форма записи">
+        </div>
+        <div class="tech-details">
+            <div class="tech-box">
+                <strong>Что видит ученик:</strong>
+                Сводка встречи (Преподаватель, дата, Московское и местное время) и поля контактов.
+            </div>
+            <div class="tech-box">
+                <strong>Что происходит под капотом:</strong>
+                Скрипт проверяет номер оплаченного заказа GetCourse (deal_id), защищая от бесплатных записей.
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="step-block">
+        <div class="step-header">
+            <div class="step-num">4</div>
+            <div class="step-title">Экран успеха: Яндекс Телемост и авто-календари</div>
+        </div>
+        <div class="step-narrative">
+            <div class="narrative-label">🎙️ Сценарий для озвучки / презентации:</div>
+            «Встреча мгновенно создана! Студент получает персональную ссылку на видеозвонок в Яндекс Телемосте. Он может в 1 клик добавить встречу в Google Календарь, скачать .ics файл на iPhone или просто нажать "Принять" в приглашении, которое Яндекс сам отправил ему на почту».
+        </div>
+        <div class="screenshot-wrap">
+            <img src="screenshots/04_success_screen.png" alt="Экран успеха">
+        </div>
+        <div class="tech-details">
+            <div class="tech-box">
+                <strong>Что видит ученик:</strong>
+                Ссылка на Телемост с кнопкой «Копировать», кнопка «Открыть в Google Календаре» и напоминание.
+            </div>
+            <div class="tech-box">
+                <strong>Что происходит под капотом:</strong>
+                В Яндекс Календарь создано событие с авто-Телемостом, а в GetCourse заказ получил статус «Записан» и заполнился ссылкой.
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 5 -->
+    <div class="step-block">
+        <div class="step-header">
+            <div class="step-num">5</div>
+            <div class="step-title">Бесшовный переход из письма GetCourse</div>
+        </div>
+        <div class="step-narrative">
+            <div class="narrative-label">🎙️ Сценарий для озвучки / презентации:</div>
+            «Вот как это выглядит для оплатившего ученика: кликая по ссылке из письма GetCourse, он минует выбор преподавателя и сразу видит актуальные даты и часы. Вся информация об оплате и контакты уже распознаны».
+        </div>
+        <div class="screenshot-wrap">
+            <img src="screenshots/05_getcourse_seamless_flow.png" alt="Переход из GetCourse">
+        </div>
+        <div class="tech-details">
+            <div class="tech-box">
+                <strong>Что видит ученик:</strong>
+                Мгновенное открытие расписания конкретного эксперта.
+            </div>
+            <div class="tech-box">
+                <strong>Что происходит под капотом:</strong>
+                Скрипт распарсил параметры deal_id, email, name, phone из ссылки рассылки GetCourse.
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

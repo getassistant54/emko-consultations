@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Запись на консультацию | ЁМКО</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f3f4f6;
+            margin: 0;
+            padding: 40px 20px;
+            color: #111827;
+        }
+        .container {
+            max-width: 640px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .header h1 {
+            font-size: 22px;
+            margin: 0 0 8px 0;
+        }
+        .header p {
+            color: #6b7280;
+            font-size: 14px;
+            margin: 0;
+        }
+        .step { display: none; }
+        .step.active { display: block; animation: fadeIn 0.25s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+        .teacher-card {
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .teacher-card:hover { border-color: #2563eb; background: #f8faff; }
+        .teacher-name { font-weight: 700; font-size: 16px; }
+        .teacher-role { font-size: 13px; color: #6b7280; margin-top: 2px; }
+
+        .date-strip {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .date-btn {
+            flex: 0 0 74px;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            padding: 10px 4px;
+            text-align: center;
+            cursor: pointer;
+            background: #fff;
+            transition: all 0.2s;
+        }
+        .date-btn:hover { border-color: #2563eb; }
+        .date-btn.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+        .date-btn .d-name { font-size: 11px; text-transform: uppercase; font-weight: 600; }
+        .date-btn .d-num { font-size: 16px; font-weight: 700; margin-top: 4px; }
+
+        .slots-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+        .slot-btn {
+            padding: 12px 6px;
+            text-align: center;
+            border: 1px solid #d1d5db;
+            background: #f9fafb;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .slot-btn:hover { background: #2563eb; color: #fff; border-color: #2563eb; }
+        .slot-btn.selected { background: #1d4ed8; color: #fff; border-color: #1d4ed8; }
+        .slot-local-time { font-size: 11px; color: #6b7280; margin-top: 2px; }
+        .slot-btn:hover .slot-local-time,
+        .slot-btn.selected .slot-local-time { color: rgba(255, 255, 255, 0.9); }
+
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .form-group input:focus, .form-group textarea:focus { border-color: #2563eb; outline: none; }
+
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-submit:hover { background: #1d4ed8; }
+        .btn-submit:disabled { background: #93c5fd; cursor: not-allowed; }
+
+        .btn-back {
+            background: none;
+            border: none;
+            color: #6b7280;
+            font-size: 13px;
+            cursor: pointer;
+            margin-bottom: 12px;
+            padding: 0;
+        }
+
+        .success-box {
+            text-align: center;
+            padding: 10px 0;
+        }
+        .success-icon {
+            width: 56px;
+            height: 56px;
+            background: #dcfce7;
+            color: #16a34a;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin: 0 auto 14px;
+        }
+        .telemost-input-wrap {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .telemost-input-wrap input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            background: #fff;
+            font-size: 13px;
+            color: #374151;
+        }
+        .btn-copy {
+            padding: 10px 16px;
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+        .btn-copy:hover { background: #e5e7eb; }
+        .btn-cal-download {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 12px;
+            background: #2563eb;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            margin-top: 14px;
+            transition: background 0.2s;
+        }
+        .btn-cal-download:hover { background: #1d4ed8; }
+        .badge-gc {
+            display: inline-block;
+            background: #e0f2fe;
+            color: #0369a1;
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- Step 1: Teachers -->
+    <div id="step-teacher" class="step active">
+        <div class="header">
+            <h1>Запись на консультацию</h1>
+            <p>Выберите преподавателя</p>
+        </div>
+        <div id="teacher-list">Загрузка преподавателей...</div>
+    </div>
+
+    <!-- Step 2: Date & Slots -->
+    <div id="step-slots" class="step">
+        <button type="button" class="btn-back" id="back-to-teacher">← Выбрать другого преподавателя</button>
+        <div class="header">
+            <h1 id="teacher-title">Преподаватель</h1>
+            <p id="teacher-sub">Свободные слоты для записи</p>
+        </div>
+        <div class="date-strip" id="date-strip"></div>
+        <div style="font-weight:600;font-size:14px;margin-bottom:10px;">Доступное время (МСК):</div>
+        <div class="slots-grid" id="slots-grid"></div>
+    </div>
+
+    <!-- Step 3: Confirmation Form -->
+    <div id="step-form" class="step">
+        <button type="button" class="btn-back" id="back-to-slots">← Выбрать другое время</button>
+        <div class="header">
+            <h1>Подтверждение встречи</h1>
+            <p id="meeting-summary">30 сентября в 14:00</p>
+        </div>
+        <form id="booking-form">
+            <div class="form-group">
+                <label>Ваше имя</label>
+                <input type="text" id="inp-name" required placeholder="Иван Иванов" />
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="inp-email" required placeholder="ivan@test.ru" />
+            </div>
+            <div class="form-group">
+                <label>Телефон</label>
+                <input type="tel" id="inp-phone" required placeholder="+7 (999) 000-00-00" />
+            </div>
+            <div class="form-group">
+                <label>Вопрос к консультации (необязательно)</label>
+                <textarea id="inp-note" rows="2" placeholder="Кратко опишите вопрос"></textarea>
+            </div>
+            <button type="submit" id="btn-submit" class="btn-submit">Записаться на консультацию</button>
+        </form>
+    </div>
+
+    <!-- Step 4: Success -->
+    <div id="step-success" class="step">
+        <div class="success-box">
+            <div class="success-icon">✓</div>
+            <h2 style="margin:0 0 6px 0;">Вы успешно записаны!</h2>
+            <p style="color:#6b7280;margin:0 0 16px 0;">Мы отправили подтверждение на ваш email</p>
+
+            <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:16px;text-align:left;margin-bottom:16px;">
+                <div style="margin-bottom:8px;">Преподаватель: <strong id="res-teacher"></strong></div>
+                <div style="margin-bottom:8px;">Дата и время: <strong id="res-time"></strong> (по МСК)</div>
+                <div style="font-size:13px;color:#6b7280;">Формат: Онлайн-консультация в Яндекс Телемост</div>
+            </div>
+
+            <div style="text-align:left;margin-bottom:16px;">
+                <label style="font-size:12px;font-weight:600;color:#4b5563;">Персональная ссылка на видеовстречу:</label>
+                <div class="telemost-input-wrap">
+                    <input type="text" id="res-telemost-url" readonly />
+                    <button type="button" class="btn-copy" id="btn-copy-link">Копировать</button>
+                </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px;">
+                <a href="#" id="btn-google-cal" target="_blank" class="btn-cal-download" style="background:#0284c7;">
+                    🌐 Открыть в Google Календаре
+                </a>
+                <a href="#" id="btn-download-ics" class="btn-cal-download" style="background:#4b5563;font-size:13px;padding:10px;">
+                    📱 Скачать файл для Apple / Outlook (.ics)
+                </a>
+            </div>
+
+            <div style="margin-top:16px;padding:12px;background:#fefce8;border:1px solid #fef08a;border-radius:8px;font-size:12px;color:#854d0e;text-align:left;">
+                💡 <strong>Если вы пользуетесь Яндекс Календарем:</strong> мы автоматически отправили приглашение на вашу почту. В письме от Яндекса просто нажмите <strong>«Принять»</strong>, и встреча появится в вашем Яндекс Календаре!
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const pTeacher = params.get('teacher');
+const pName = params.get('name') || '';
+const pEmail = params.get('email') || '';
+let pPhone = params.get('phone') || params.get('user_phone') || '';
+// Умный поиск: если передали просто &+7913... без phone=
+if (!pPhone) {
+    const rawMatch = window.location.search.match(/(?:\+|%2B)?([78]\d{10})/);
+    if (rawMatch) {
+        pPhone = '+' + rawMatch[1];
+    }
+}
+
+let state = {
+    teacher: null,
+    date: null,
+    slot: null,
+    name: pName,
+    email: pEmail,
+    phone: pPhone
+};
+
+const stepT = document.getElementById('step-teacher');
+const stepS = document.getElementById('step-slots');
+const stepF = document.getElementById('step-form');
+const stepOk = document.getElementById('step-success');
+
+function setStep(step) {
+    [stepT, stepS, stepF, stepOk].forEach(s => s.classList.remove('active'));
+    step.classList.add('active');
+}
+
+// 1. Load Teachers
+fetch('/api/teachers')
+    .then(r => r.json())
+    .then(teachers => {
+        if (pTeacher) {
+            const found = teachers.find(t => t.id === pTeacher);
+            if (found) return pickTeacher(found);
+        }
+        const list = document.getElementById('teacher-list');
+        list.innerHTML = teachers.map(t => `
+            <div class="teacher-card" onclick='pickTeacher(${JSON.stringify(t)})'>
+                <div>
+                    <div class="teacher-name">${t.name}</div>
+                    <div class="teacher-role">${t.role} (${t.duration} мин)</div>
+                </div>
+                <span style="font-size:18px;color:#9ca3af;">➔</span>
+            </div>
+        `).join('');
+    });
+
+window.pickTeacher = function(t) {
+    state.teacher = t;
+    document.getElementById('teacher-title').textContent = t.name;
+    document.getElementById('teacher-sub').textContent = `${t.role} • ${t.duration} минут`;
+    buildDates();
+    setStep(stepS);
+};
+
+function buildDates() {
+    const strip = document.getElementById('date-strip');
+    strip.innerHTML = '';
+    const dNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+    const months = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+    const today = new Date();
+
+    for (let i = 0; i < 14; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() + i);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const dStr = `${yyyy}-${mm}-${dd}`;
+
+        const btn = document.createElement('div');
+        btn.className = `date-btn ${i === 0 ? 'active' : ''}`;
+        btn.innerHTML = `<div class="d-name">${dNames[d.getDay()]}</div><div class="d-num">${d.getDate()} ${months[d.getMonth()]}</div>`;
+        btn.onclick = () => {
+            strip.querySelectorAll('.date-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            state.date = dStr;
+            loadSlots(dStr);
+        };
+        strip.appendChild(btn);
+
+        if (i === 0) {
+            state.date = dStr;
+            loadSlots(dStr);
+        }
+    }
+}
+
+function loadSlots(dStr) {
+    const grid = document.getElementById('slots-grid');
+    grid.innerHTML = '<div style="grid-column:1/-1;color:#6b7280;padding:20px 0;">Проверяем Яндекс Календарь...</div>';
+
+    fetch(`/api/slots?teacher_id=${state.teacher.id}&date=${dStr}`)
+        .then(r => r.json())
+        .then(data => {
+            if (!data.slots || data.slots.length === 0) {
+                grid.innerHTML = '<div style="grid-column:1/-1;color:#9ca3af;padding:20px 0;">Нет свободных слотов на этот день</div>';
+                return;
+            }
+            grid.innerHTML = data.slots.map(s => {
+                const localTime = new Date(s.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const isDiff = localTime !== s.time;
+                return `
+                    <button type="button" class="slot-btn" onclick='pickSlot(${s.timestamp}, "${s.time}", "${localTime}")' style="min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                        <span style="font-size:14px;font-weight:700;">${s.time} <small style="font-size:10px;font-weight:normal;">МСК</small></span>
+                        ${isDiff ? `<span class="slot-local-time">(${localTime} местн.)</span>` : ''}
+                    </button>
+                `;
+            }).join('');
+        });
+}
+
+window.pickSlot = function(ts, mskTime, localTime) {
+    state.slot = { ts, mskTime, localTime };
+    const tzNote = (localTime && localTime !== mskTime) ? ` (${localTime} по вашему времени)` : '';
+    document.getElementById('meeting-summary').textContent = `${state.teacher.name} • ${state.date} в ${mskTime} МСК${tzNote}`;
+    if (state.name) document.getElementById('inp-name').value = state.name;
+    if (state.email) document.getElementById('inp-email').value = state.email;
+    if (state.phone) document.getElementById('inp-phone').value = state.phone;
+    setStep(stepF);
+};
+
+document.getElementById('back-to-teacher').onclick = () => setStep(stepT);
+document.getElementById('back-to-slots').onclick = () => setStep(stepS);
+
+document.getElementById('booking-form').onsubmit = function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btn-submit');
+    btn.disabled = true;
+    btn.textContent = 'Создаем встречу в Яндекс Календаре...';
+
+    const bookingPayload = {
+        teacher_id: state.teacher.id,
+        deal_id: params.get('deal_id') || '',
+        timestamp: state.slot.ts,
+        name: document.getElementById('inp-name').value,
+        email: document.getElementById('inp-email').value,
+        phone: document.getElementById('inp-phone').value,
+        note: document.getElementById('inp-note').value
+    };
+
+    fetch('/api/book', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bookingPayload)
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            document.getElementById('res-teacher').textContent = res.teacher_name;
+            const tzInfo = (state.slot.localTime && state.slot.localTime !== state.slot.mskTime) 
+                ? ` / ${state.slot.localTime} по вашему времени` 
+                : '';
+            document.getElementById('res-time').textContent = `${res.datetime} (МСК)${tzInfo}`;
+            
+            const teleInput = document.getElementById('res-telemost-url');
+            teleInput.value = res.telemost_url;
+
+            // Copy button
+            document.getElementById('btn-copy-link').onclick = () => {
+                navigator.clipboard.writeText(res.telemost_url);
+                const copyBtn = document.getElementById('btn-copy-link');
+                copyBtn.textContent = 'Скопировано!';
+                setTimeout(() => { copyBtn.textContent = 'Копировать'; }, 2000);
+            };
+
+            // Dates for calendars
+            const sDate = new Date(state.slot.ts);
+            const eDate = new Date(state.slot.ts + (state.teacher.duration || 45) * 60 * 1000);
+
+            // Helper for MSK formatting in Google Calendar (YYYYMMDDTHHMMSS)
+            const getMskIso = (d) => {
+                const parts = new Intl.DateTimeFormat('en-GB', {
+                    timeZone: 'Europe/Moscow',
+                    year: 'numeric', month: '2-digit', day: '2-digit',
+                    hour: '2-digit', minute: '2-digit', second: '2-digit',
+                    hour12: false
+                }).formatToParts(d);
+                const p = {};
+                parts.forEach(x => p[x.type] = x.value);
+                return `${p.year}${p.month}${p.day}T${p.hour}${p.minute}00`;
+            };
+
+            // Google Calendar Link
+            const sIso = getMskIso(sDate);
+            const eIso = getMskIso(eDate);
+            const gText = encodeURIComponent(`Консультация: ${res.teacher_name}`);
+            const gDetails = encodeURIComponent(`Ссылка на видеовстречу: ${res.telemost_url}\nВремя преподавателя: ${state.slot.mskTime} (МСК)${state.slot.localTime !== state.slot.mskTime ? `\nВаше местное время: ${state.slot.localTime}` : ''}`);
+            const gLoc = encodeURIComponent(res.telemost_url);
+            const gUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${gText}&dates=${sIso}/${eIso}&ctz=Europe/Moscow&details=${gDetails}&location=${gLoc}`;
+            document.getElementById('btn-google-cal').href = gUrl;
+
+            // ICS file download
+            const fmt = (d) => d.toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z";
+            const icsContent = [
+                "BEGIN:VCALENDAR",
+                "VERSION:2.0",
+                "PRODID:-//Emko//Booking//RU",
+                "BEGIN:VEVENT",
+                `UID:${Date.now()}@emko.ru`,
+                `DTSTAMP:${fmt(new Date())}`,
+                `DTSTART:${fmt(sDate)}`,
+                `DTEND:${fmt(eDate)}`,
+                `SUMMARY:Консультация: ${res.teacher_name}`,
+                `DESCRIPTION:Ссылка на Яндекс Телемост: ${res.telemost_url}`,
+                `LOCATION:${res.telemost_url}`,
+                "END:VEVENT",
+                "END:VCALENDAR"
+            ].join("\r\n");
+
+            const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8" });
+            const icsLink = document.getElementById('btn-download-ics');
+            icsLink.href = URL.createObjectURL(blob);
+            icsLink.download = `consultation-${state.date}.ics`;
+
+            setStep(stepOk);
+        } else {
+            alert('Ошибка: ' + res.message);
+            btn.disabled = false;
+            btn.textContent = 'Записаться на консультацию';
+        }
+    })
+    .catch(err => {
+        alert('Ошибка связи с сервером');
+        btn.disabled = false;
+        btn.textContent = 'Записаться на консультацию';
+    });
+};
+</script>
+
+</body>
+</html>
