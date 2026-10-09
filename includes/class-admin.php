@@ -15,6 +15,7 @@ class Emko_Admin_Settings {
         add_action('wp_ajax_emko_fetch_calendars', array($this, 'ajax_fetch_calendars'));
         add_action('wp_ajax_emko_add_calendar', array($this, 'ajax_add_calendar'));
         add_action('wp_ajax_emko_delete_calendar', array($this, 'ajax_delete_calendar'));
+        add_action('wp_ajax_emko_clear_all_calendars', array($this, 'ajax_clear_all_calendars'));
         add_action('wp_ajax_emko_test_getcourse', array($this, 'ajax_test_getcourse'));
     }
 
@@ -70,9 +71,13 @@ class Emko_Admin_Settings {
             $schedule = array();
             for ($d = 1; $d <= 7; $d++) {
                 $schedule[$d] = array(
-                    'active' => !empty($_POST["day_{$d}_active"]),
-                    'start'  => sanitize_text_field($_POST["day_{$d}_start"] ?? '10:00'),
-                    'end'    => sanitize_text_field($_POST["day_{$d}_end"] ?? '18:00')
+                    'active'      => !empty($_POST["day_{$d}_active"]),
+                    'start'       => sanitize_text_field($_POST["day_{$d}_start"] ?? '10:00'),
+                    'end'         => sanitize_text_field($_POST["day_{$d}_end"] ?? '18:00'),
+                    'start2'      => sanitize_text_field($_POST["day_{$d}_start2"] ?? ''),
+                    'end2'        => sanitize_text_field($_POST["day_{$d}_end2"] ?? ''),
+                    'break_start' => sanitize_text_field($_POST["day_{$d}_break_start"] ?? ''),
+                    'break_end'   => sanitize_text_field($_POST["day_{$d}_break_end"] ?? '')
                 );
             }
 
@@ -198,21 +203,36 @@ class Emko_Admin_Settings {
             wp_send_json_error('Доступ запрещен');
         }
 
-        $href = sanitize_text_field($_POST['href'] ?? '');
+        $href = isset($_POST['href']) ? wp_unslash($_POST['href']) : '';
+        $href = trim($href);
         if (empty($href)) {
             wp_send_json_error('Не указан идентификатор календаря.');
         }
 
         $calendars = get_option('emko_cached_calendars', array());
         $filtered = array();
+        $targetNorm = rtrim(urldecode($href), '/');
+
         foreach ($calendars as $c) {
-            if ($c['href'] !== $href) {
+            $curHref = $c['href'] ?? '';
+            $curNorm = rtrim(urldecode($curHref), '/');
+            if ($curNorm !== $targetNorm && $curHref !== $href) {
                 $filtered[] = $c;
             }
         }
 
         update_option('emko_cached_calendars', $filtered);
         wp_send_json_success(array('calendars' => $filtered));
+    }
+
+    public function ajax_clear_all_calendars() {
+        check_ajax_referer('emko_admin_ajax_nonce', 'security');
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Доступ запрещен');
+        }
+
+        update_option('emko_cached_calendars', array());
+        wp_send_json_success(array('calendars' => array()));
     }
 
     public function ajax_test_getcourse() {
@@ -264,8 +284,11 @@ class Emko_Admin_Settings {
                         <span class="dashicons dashicons-calendar-alt" style="font-size:26px;width:26px;height:26px;"></span>
                     </div>
                     <div>
-                        <h1 style="margin:0;font-size:24px;line-height:1.2;">Запись на консультации: ЁМКО</h1>
-                        <p style="margin:2px 0 0 0;color:#6b7280;font-size:13px;">Интеграция: Яндекс Календарь • Яндекс Телемост • GetCourse</p>
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <h1 style="margin:0;font-size:24px;line-height:1.2;">Запись на консультации: ЁМКО</h1>
+                            <span style="background:#10b981;color:#fff;font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:0.3px;">v<?php echo defined('EMKO_BOOKING_VERSION') ? EMKO_BOOKING_VERSION : '1.3.2'; ?></span>
+                        </div>
+                        <p style="margin:4px 0 0 0;color:#6b7280;font-size:13px;">Интеграция: Яндекс Календарь • Яндекс Телемост • GetCourse</p>
                     </div>
                 </div>
                 <div style="background:#fff;border:1px solid #e5e7eb;padding:6px 14px;border-radius:8px;display:flex;align-items:center;gap:10px;">
@@ -273,6 +296,21 @@ class Emko_Admin_Settings {
                     <code style="background:#f3f4f6;padding:4px 8px;border-radius:4px;font-size:13px;font-weight:600;color:#1e40af;">[emko_booking]</code>
                     <button type="button" class="button button-small" onclick="navigator.clipboard.writeText('[emko_booking]');alert('Шорткод скопирован в буфер обмена!');">Копировать</button>
                 </div>
+            </div>
+
+            <!-- Блок статуса версии и обновления плагина -->
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 18px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <span style="font-size:20px;">🟢</span>
+                    <div>
+                        <strong style="color:#166534;font-size:14px;">Установлена версия v<?php echo defined('EMKO_BOOKING_VERSION') ? EMKO_BOOKING_VERSION : '1.3.2'; ?></strong>
+                        <span style="color:#15803d;font-size:13px;margin-left:8px;">(Модули календаря, Телемоста и GetCourse активны)</span>
+                    </div>
+                </div>
+                <a href="<?php echo admin_url('plugin-install.php?tab=upload'); ?>" class="button button-primary" style="background:#10b981;border-color:#059669;font-weight:600;display:inline-flex;align-items:center;gap:6px;">
+                    <span class="dashicons dashicons-upload" style="font-size:16px;width:16px;height:16px;margin-top:2px;"></span>
+                    Обновить плагин (загрузить .zip)
+                </a>
             </div>
 
             <!-- Индикатор готовности / Статусная панель первичной установки -->
@@ -407,8 +445,12 @@ class Emko_Admin_Settings {
                                         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
                                             <select name="calendar_href" id="calendar_href_select" style="min-width:320px;" required>
                                                 <option value="">-- Выберите календарь --</option>
-                                                <?php foreach ($cachedCalendars as $cal): ?>
-                                                    <option value="<?php echo esc_attr($cal['href']); ?>" <?php selected($tData['calendar_href'], $cal['href']); ?>>
+                                                <?php foreach ($cachedCalendars as $cal): 
+                                                    $cBase = basename(rtrim($cal['href'] ?? '', '/'));
+                                                    $tBase = basename(rtrim($tData['calendar_href'] ?? '', '/'));
+                                                    $isSel = ($tData['calendar_href'] === $cal['href'] || (!empty($tBase) && $tBase === $cBase));
+                                                ?>
+                                                    <option value="<?php echo esc_attr($cal['href']); ?>" <?php if ($isSel) echo 'selected="selected"'; ?>>
                                                         <?php echo esc_html($cal['name']); ?>
                                                     </option>
                                                 <?php endforeach; ?>
@@ -454,12 +496,12 @@ class Emko_Admin_Settings {
                             <h3 style="margin-top:30px;border-top:1px solid #e5e7eb;padding-top:20px;">Рабочие дни и часы приёма</h3>
                             <p class="description" style="margin-bottom:15px;">Укажите, в какие дни и часы преподаватель готов проводить консультации (по московскому времени):</p>
                             
-                            <table class="widefat fixed striped" style="max-width:680px;border-radius:6px;overflow:hidden;">
+                            <table class="widefat fixed striped" style="max-width:760px;border-radius:6px;overflow:hidden;">
                                 <thead>
                                     <tr>
-                                        <th style="width:140px;">День недели</th>
-                                        <th style="width:100px;">Рабочий</th>
-                                        <th>Время с / до (МСК)</th>
+                                        <th style="width:130px;">День недели</th>
+                                        <th style="width:90px;">Рабочий</th>
+                                        <th>Периоды приёма и перерывы (МСК)</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -467,13 +509,28 @@ class Emko_Admin_Settings {
                                         $dConf = $tData['schedule'][$num] ?? array('active' => 0, 'start' => '10:00', 'end' => '18:00');
                                     ?>
                                     <tr>
-                                        <td><strong><?php echo esc_html($name); ?></strong></td>
-                                        <td>
+                                        <td style="vertical-align:top;padding-top:12px;"><strong><?php echo esc_html($name); ?></strong></td>
+                                        <td style="vertical-align:top;padding-top:12px;">
                                             <label><input type="checkbox" name="day_<?php echo $num; ?>_active" value="1" <?php checked(!empty($dConf['active'])); ?> /> Да</label>
                                         </td>
                                         <td>
-                                            с <input type="time" name="day_<?php echo $num; ?>_start" value="<?php echo esc_attr($dConf['start']); ?>" style="padding:2px 6px;" />
-                                            до <input type="time" name="day_<?php echo $num; ?>_end" value="<?php echo esc_attr($dConf['end']); ?>" style="padding:2px 6px;" />
+                                            <div style="margin-bottom:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                                                <span style="font-size:12px;color:#334155;font-weight:600;min-width:65px;">Период 1:</span>
+                                                <span>с</span> <input type="time" name="day_<?php echo $num; ?>_start" value="<?php echo esc_attr($dConf['start'] ?? '10:00'); ?>" style="padding:2px 6px;" />
+                                                <span>до</span> <input type="time" name="day_<?php echo $num; ?>_end" value="<?php echo esc_attr($dConf['end'] ?? '18:00'); ?>" style="padding:2px 6px;" />
+                                            </div>
+                                            <div style="margin-bottom:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                                                <span style="font-size:12px;color:#475569;min-width:65px;">Период 2:</span>
+                                                <span>с</span> <input type="time" name="day_<?php echo $num; ?>_start2" value="<?php echo esc_attr($dConf['start2'] ?? ''); ?>" style="padding:2px 6px;" />
+                                                <span>до</span> <input type="time" name="day_<?php echo $num; ?>_end2" value="<?php echo esc_attr($dConf['end2'] ?? ''); ?>" style="padding:2px 6px;" />
+                                                <span class="description" style="font-size:11px;color:#94a3b8;">(опционально, второй блок дня)</span>
+                                            </div>
+                                            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                                                <span style="font-size:12px;color:#b91c1c;min-width:65px;">Перерыв:</span>
+                                                <span>с</span> <input type="time" name="day_<?php echo $num; ?>_break_start" value="<?php echo esc_attr($dConf['break_start'] ?? ''); ?>" style="padding:2px 6px;" />
+                                                <span>до</span> <input type="time" name="day_<?php echo $num; ?>_break_end" value="<?php echo esc_attr($dConf['break_end'] ?? ''); ?>" style="padding:2px 6px;" />
+                                                <span class="description" style="font-size:11px;color:#94a3b8;">(исключение из слотов, например 12:00–15:00)</span>
+                                            </div>
                                         </td>
                                     </tr>
                                     <?php endforeach; ?>
@@ -543,12 +600,22 @@ class Emko_Admin_Settings {
                             <?php else: ?>
                                 <?php foreach ($teachers as $id => $t): 
                                     // Поиск названия календаря
-                                    $calName = '— Не назначен —';
-                                    foreach ($cachedCalendars as $c) {
-                                        if ($c['href'] === ($t['calendar_href'] ?? '')) {
-                                            $calName = $c['name'];
-                                            break;
+                                    $calHref = $t['calendar_href'] ?? '';
+                                    $calName = '';
+                                    if (!empty($calHref)) {
+                                        $tBase = basename(rtrim($calHref, '/'));
+                                        foreach ($cachedCalendars as $c) {
+                                            $cBase = basename(rtrim($c['href'] ?? '', '/'));
+                                            if (($c['href'] ?? '') === $calHref || (!empty($tBase) && $tBase === $cBase)) {
+                                                $calName = $c['name'];
+                                                break;
+                                            }
                                         }
+                                        if (empty($calName)) {
+                                            $calName = '✓ Календарь подключен (' . $tBase . ')';
+                                        }
+                                    } else {
+                                        $calName = '— Не назначен —';
                                     }
                                 ?>
                                     <tr>
@@ -593,6 +660,9 @@ class Emko_Admin_Settings {
                             <button type="button" id="btn-sync-all-calendars" class="button button-primary">
                                 🔄 Синхронизировать календари с Яндексом
                             </button>
+                            <button type="button" id="btn-clear-all-calendars" class="button button-secondary" style="color:#b91c1c;">
+                                🗑️ Очистить список
+                            </button>
                             <span id="cals-sync-spinner" class="spinner"></span>
                         </div>
                     </div>
@@ -616,8 +686,10 @@ class Emko_Admin_Settings {
                                 <?php foreach ($cachedCalendars as $c): 
                                     // Проверяем, какой преподаватель привязан
                                     $assignedTeachers = array();
+                                    $cBase = basename(rtrim($c['href'] ?? '', '/'));
                                     foreach ($teachers as $t) {
-                                        if (($t['calendar_href'] ?? '') === $c['href']) {
+                                        $tBase = basename(rtrim($t['calendar_href'] ?? '', '/'));
+                                        if (($t['calendar_href'] ?? '') === $c['href'] || (!empty($cBase) && $cBase === $tBase)) {
                                             $assignedTeachers[] = $t['name'];
                                         }
                                     }
@@ -691,9 +763,29 @@ class Emko_Admin_Settings {
                         });
                     });
 
+                    // Очистить все календари
+                    $('#btn-clear-all-calendars').on('click', function() {
+                        if (!confirm('Очистить весь сохраненный список календарей? (Сами календари в Яндексе не удалятся)')) {
+                            return;
+                        }
+                        var btn = $(this);
+                        btn.prop('disabled', true);
+                        $.post(ajaxurl, {
+                            action: 'emko_clear_all_calendars',
+                            security: ajaxNonce
+                        }, function(res) {
+                            btn.prop('disabled', false);
+                            if (res.success) {
+                                renderCalendarsTable([]);
+                                showNotice('cals-notice-area', 'success', 'Список календарей очищен. Теперь нажмите «Синхронизировать календари с Яндексом».');
+                            }
+                        });
+                    });
+
                     // Удаление календаря из списка
                     $(document).on('click', '.btn-delete-cal', function() {
-                        var href = $(this).data('href');
+                        var href = $(this).attr('data-href') || $(this).data('href');
+                        if (!href) return;
                         if (!confirm('Удалить этот календарь из списка плагина? (В самом Яндексе календарь не удалится)')) {
                             return;
                         }
@@ -703,8 +795,8 @@ class Emko_Admin_Settings {
                             href: href,
                             security: ajaxNonce
                         }, function(res) {
-                            if (res.success && res.data.calendars) {
-                                renderCalendarsTable(res.data.calendars);
+                            if (res.success && res.data) {
+                                renderCalendarsTable(res.data.calendars || []);
                                 showNotice('cals-notice-area', 'success', 'Календарь удален из списка плагина.');
                             } else {
                                 alert('Ошибка: ' + (res.data || 'Не удалось удалить'));

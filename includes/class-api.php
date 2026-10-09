@@ -74,9 +74,6 @@ class Emko_Booking_API {
             return rest_ensure_response(array('slots' => array(), 'message' => 'В этот день нет приёма'));
         }
 
-        $workStart = $dayConfig['start'] ?? '10:00';
-        $workEnd   = $dayConfig['end'] ?? '18:00';
-
         // Получаем занятые интервалы из Яндекса
         $yandexEmail = get_option('emko_yandex_email');
         $yandexPass  = get_option('emko_yandex_app_password');
@@ -89,38 +86,67 @@ class Emko_Booking_API {
             $busyIntervals = $calClient->get_busy_intervals($calHref, $dayStartIso, $dayEndIso);
         }
 
+        // Поддержка перерыва/исключения внутри дня (например, с 12:00 до 15:00)
+        if (!empty($dayConfig['break_start']) && !empty($dayConfig['break_end'])) {
+            $busyIntervals[] = array(
+                'start' => strtotime($dateStr . ' ' . $dayConfig['break_start']),
+                'end'   => strtotime($dateStr . ' ' . $dayConfig['break_end'])
+            );
+        }
+
+        // Собираем рабочие периоды дня (Период 1, Период 2 или массив periods)
+        $workIntervals = array();
+        if (!empty($dayConfig['periods']) && is_array($dayConfig['periods'])) {
+            $workIntervals = $dayConfig['periods'];
+        } else {
+            $wStart1 = $dayConfig['start'] ?? '10:00';
+            $wEnd1   = $dayConfig['end'] ?? '18:00';
+            if (!empty($wStart1) && !empty($wEnd1)) {
+                $workIntervals[] = array('start' => $wStart1, 'end' => $wEnd1);
+            }
+            if (!empty($dayConfig['start2']) && !empty($dayConfig['end2'])) {
+                $workIntervals[] = array('start' => $dayConfig['start2'], 'end' => $dayConfig['end2']);
+            }
+        }
+
         // Генерируем слоты в таймзоне сайта
-        $tzOffset = get_option('gmt_offset', 3) * 3600; // по умолчанию МСК (UTC+3)
-        $workStartTs = strtotime($dateStr . ' ' . $workStart);
-        $workEndTs   = strtotime($dateStr . ' ' . $workEnd);
+        $tzOffset    = get_option('gmt_offset', 3) * 3600; // по умолчанию МСК (UTC+3)
         $stepSeconds = ($duration + $buffer) * 60;
         $nowTs       = time() + $tzOffset;
 
         $slots = array();
-        for ($slotStart = $workStartTs; $slotStart + ($duration * 60) <= $workEndTs; $slotStart += $stepSeconds) {
-            $slotEnd = $slotStart + ($duration * 60);
+        $seenSlots = array();
 
-            // Фильтр: не показываем прошедшие слоты (плюс запас 1 час)
-            if ($slotStart <= ($nowTs + 3600)) {
-                continue;
-            }
+        foreach ($workIntervals as $interval) {
+            $wStartTs = strtotime($dateStr . ' ' . $interval['start']);
+            $wEndTs   = strtotime($dateStr . ' ' . $interval['end']);
 
-            // Проверка на пересечение с событиями в Яндекс Календаре
-            $isBusy = false;
-            foreach ($busyIntervals as $busy) {
-                // Пересечение интервалов: start1 < end2 && end1 > start2
-                if ($slotStart < $busy['end'] && $slotEnd > $busy['start']) {
-                    $isBusy = true;
-                    break;
+            for ($slotStart = $wStartTs; $slotStart + ($duration * 60) <= $wEndTs; $slotStart += $stepSeconds) {
+                $slotEnd = $slotStart + ($duration * 60);
+
+                // Фильтр: не показываем прошедшие слоты (плюс запас 1 час)
+                if ($slotStart <= ($nowTs + 3600)) {
+                    continue;
                 }
-            }
 
-            if (!$isBusy) {
-                $slots[] = array(
-                    'time'      => date('H:i', $slotStart),
-                    'timestamp' => $slotStart,
-                    'duration'  => $duration
-                );
+                // Проверка на пересечение с событиями в Яндекс Календаре или перерывом
+                $isBusy = false;
+                foreach ($busyIntervals as $busy) {
+                    if ($slotStart < $busy['end'] && $slotEnd > $busy['start']) {
+                        $isBusy = true;
+                        break;
+                    }
+                }
+
+                $slotTime = date('H:i', $slotStart);
+                if (!$isBusy && !isset($seenSlots[$slotTime])) {
+                    $seenSlots[$slotTime] = true;
+                    $slots[] = array(
+                        'time'      => $slotTime,
+                        'timestamp' => $slotStart,
+                        'duration'  => $duration
+                    );
+                }
             }
         }
 

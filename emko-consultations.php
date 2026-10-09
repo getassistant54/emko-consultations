@@ -1,9 +1,9 @@
 <?php
 /**
  * Plugin Name: Emko Consultations & Telemost Booking
- * Plugin URI:  https://emko.ru
+ * Plugin URI:  https://emko.academy
  * Description: Запись на консультации с автоматической интеграцией в Яндекс Календарь, Яндекс Телемост и GetCourse.
- * Version:     1.1.0
+ * Version:     1.3.2
  * Author:      ЁМКО
  * Text Domain: emko-consultations
  */
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('EMKO_BOOKING_VERSION', '1.1.0');
+define('EMKO_BOOKING_VERSION', '1.3.2');
 define('EMKO_BOOKING_DIR', plugin_dir_path(__FILE__));
 define('EMKO_BOOKING_URL', plugin_dir_url(__FILE__));
 
@@ -41,6 +41,34 @@ class Emko_Consultations_Plugin {
         add_shortcode('emko_booking', array($this, 'render_booking_shortcode'));
         register_activation_hook(__FILE__, array($this, 'on_activate'));
         add_action('emko_send_1h_reminder', array($this, 'handle_1h_reminder'), 10, 2);
+        add_filter('request', array($this, 'prevent_wp_name_query_var_conflict'));
+        add_action('wp_footer', array($this, 'inject_site_enhancements'));
+
+        // Кнопки управления и индикатор версии в списке плагинов WP
+        add_filter('plugin_action_links_' . plugin_basename(__FILE__), array($this, 'add_plugin_action_links'));
+        add_filter('plugin_row_meta', array($this, 'add_plugin_row_meta'), 10, 2);
+    }
+
+    public function add_plugin_action_links($links) {
+        $settings_link = '<a href="' . admin_url('admin.php?page=emko-consultations') . '" style="font-weight:600;color:#0284c7;">⚙️ Настройки</a>';
+        $upload_link   = '<a href="' . admin_url('plugin-install.php?tab=upload') . '" style="font-weight:600;color:#10b981;">⬆️ Обновить плагин (загрузить zip)</a>';
+        array_unshift($links, $upload_link);
+        array_unshift($links, $settings_link);
+        return $links;
+    }
+
+    public function add_plugin_row_meta($links, $file) {
+        if ($file === plugin_basename(__FILE__)) {
+            $links[] = '<strong style="color:#059669;background:#ecfdf5;padding:2px 8px;border-radius:12px;border:1px solid #a7f3d0;">🟢 Установлена версия: v' . EMKO_BOOKING_VERSION . '</strong>';
+        }
+        return $links;
+    }
+
+    public function prevent_wp_name_query_var_conflict($query_vars) {
+        if (isset($query_vars['name']) && (isset($query_vars['pagename']) || isset($_GET['deal_id']) || isset($_GET['order_id']))) {
+            unset($query_vars['name']);
+        }
+        return $query_vars;
     }
 
     public function handle_1h_reminder($email, $dealId) {
@@ -155,25 +183,24 @@ class Emko_Consultations_Plugin {
         ob_start();
         ?>
         <div class="emko-booking-widget">
-            <!-- Step 0: Gate: Access Only via Paid Order from Email -->
+            <!-- Step 0: Gate: Access via Paid Order or Link to Catalog -->
             <div id="emko-step-gate" class="emko-step">
-                <div class="emko-gate-card">
-                    <div class="emko-gate-icon">🔒</div>
-                    <div class="emko-header">
-                        <h3>Запись доступна после оплаты консультации</h3>
-                        <p>Для записи требуется подтвержденный заказ</p>
-                    </div>
-                    <p class="emko-gate-desc">
-                        Чтобы выбрать дату и время консультации, пожалуйста, <strong>перейдите по персональной ссылке из письма с подтверждением оплаты</strong>. Мы отправили его на вашу электронную почту сразу после оформления заказа на сайте.
+                <div class="emko-gate-card" style="text-align:center; padding: 32px 24px;">
+                    <div style="font-size: 40px; margin-bottom: 12px;">📅</div>
+                    <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 10px; color: #111827;">Запись на консультацию</h3>
+                    <p style="font-size: 15px; color: #4b5563; max-width: 480px; margin: 0 auto 24px; line-height: 1.5;">
+                        Выбор даты и времени встречи открывается автоматически после оформления и оплаты консультации.
                     </p>
-                    <div class="emko-gate-notice">
-                        💡 <strong>Уже оплатили, но не нашли письмо?</strong><br>
-                        Проверьте папку «Спам» или «Промоакции» в вашей почте. Если письмо не пришло, свяжитесь со службой заботы Академии ЁМКО, и мы сразу отправим вам прямую ссылку.
-                    </div>
-                    <div style="margin-top:24px;">
-                        <a href="https://emko.academy/consultations/" class="emko-btn-primary" style="display:inline-block;text-decoration:none;padding:12px 28px;">
-                            Перейти в каталог консультаций
+
+                    <div style="margin-bottom: 24px;">
+                        <a href="https://emko.academy/consultations/" class="emko-btn-primary" style="display:inline-block; text-decoration:none; padding:14px 28px; font-size:15px; font-weight:600; border-radius:10px;">
+                            Перейти к выбору консультации →
                         </a>
+                    </div>
+
+                    <div class="emko-gate-notice" style="margin-top:20px; text-align: left; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 16px; font-size: 13px; color: #6b7280; line-height: 1.5;">
+                        💡 <strong>Уже оплатили консультацию?</strong><br>
+                        Пожалуйста, перейдите по персональной ссылке для записи из письма или сообщения с подтверждением оплаты. Если ссылка не пришла, напишите в нашу службу заботы.
                     </div>
                 </div>
             </div>
@@ -213,8 +240,6 @@ class Emko_Consultations_Plugin {
                     <h3>Подтверждение записи</h3>
                     <p id="emko-form-details">Детали встречи</p>
                 </div>
-                
-                <div id="emko-deal-badge" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:8px;padding:8px 12px;font-size:13px;margin-bottom:14px;font-weight:600;"></div>
 
                 <form id="emko-booking-form">
                     <div class="emko-form-group">
@@ -279,6 +304,174 @@ class Emko_Consultations_Plugin {
         </div>
         <?php
         return ob_get_clean();
+    }
+
+    public function inject_site_enhancements() {
+        $uri = $_SERVER['REQUEST_URI'] ?? '';
+        $is_consultations = is_page('consultations') || strpos($uri, 'consultations') !== false;
+        $is_teacher = is_singular('teachers') || strpos($uri, '/teachers/') !== false;
+
+        if (!$is_consultations && !$is_teacher) {
+            return;
+        }
+        ?>
+        <style>
+        /* Стили кнопки Расписание уточняется */
+        .btn-frozen,
+        .btn-frozen span {
+            color: #ffffff !important;
+            text-align: center !important;
+        }
+        .btn-frozen {
+            cursor: pointer !important;
+            opacity: 0.88 !important;
+            transition: opacity 0.2s ease !important;
+        }
+        .btn-frozen:hover {
+            opacity: 1 !important;
+        }
+
+        /* Стили модального окна для GetCourse виджета */
+        #callback_4 .modal__content {
+            max-width: 520px !important;
+            width: 100% !important;
+            max-height: 94vh !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            padding: 24px 16px 20px !important;
+            border-radius: 24px !important;
+            position: relative !important;
+            background: #ffffff !important;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15) !important;
+            box-sizing: border-box !important;
+        }
+        #callback_4 .modal__close {
+            position: absolute !important;
+            top: 14px !important;
+            right: 14px !important;
+            z-index: 100 !important;
+            cursor: pointer !important;
+            background: none !important;
+            border: none !important;
+            padding: 4px !important;
+        }
+        #callback_4 .modal__title,
+        #callback_4 .modal__text,
+        #callback_4 form {
+            display: none !important;
+        }
+        #emko-gc-iframe {
+            width: 100% !important;
+            min-height: 620px !important;
+            height: 620px !important;
+            border: none !important;
+            display: block !important;
+            background: transparent !important;
+        }
+        </style>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var activeSlugs = ['semyon-laskin', 'dmitrij-demidov', 'kelo-lokonte'];
+            var currentPath = window.location.pathname;
+
+            // Динамическая подстройка высоты виджета по сообщению от GetCourse
+            window.addEventListener('message', function(e) {
+                if (e.data && e.data.height) {
+                    var ifr = document.getElementById('emko-gc-iframe');
+                    if (ifr) {
+                        ifr.style.height = (parseInt(e.data.height) + 25) + 'px';
+                    }
+                }
+            }, false);
+
+            // 1. Каталог /consultations/
+            if (currentPath.indexOf('consultations') !== -1) {
+                var cards = document.querySelectorAll('.courses__wrapper.consultation .course, .course');
+                cards.forEach(function(card) {
+                    var links = card.querySelectorAll('a[href*="/teachers/"]');
+                    var isLive = false;
+                    links.forEach(function(l) {
+                        var href = l.getAttribute('href') || '';
+                        activeSlugs.forEach(function(slug) {
+                            if (href.indexOf(slug) !== -1) isLive = true;
+                        });
+                    });
+
+                    var bookBtn = card.querySelector('a.btn:not(.btn-grey)');
+                    var reviewBtn = card.querySelector('a.btn-grey');
+
+                    if (isLive) {
+                        // Для активных преподавателей фиксируем цену 4 900 ₽
+                        var priceBlock = card.querySelector('.course__price-value');
+                        if (priceBlock) priceBlock.innerText = '4 900 ₽';
+                    } else if (bookBtn) {
+                        // Кнопка остается на месте, сохраняя ровную сетку всех карточек
+                        bookBtn.classList.add('btn-frozen');
+                        var span = bookBtn.querySelector('span');
+                        if (span) span.innerText = 'Расписание уточняется';
+                        else bookBtn.innerText = 'Расписание уточняется';
+
+                        // При клике переводим на страницу опыта/отзывов преподавателя
+                        bookBtn.removeAttribute('target');
+                        bookBtn.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            if (reviewBtn && reviewBtn.getAttribute('href')) {
+                                window.location.href = reviewBtn.getAttribute('href');
+                            }
+                        });
+                    }
+                });
+            }
+
+            // 2. Страница преподавателя /teachers/{slug}/
+            if (currentPath.indexOf('/teachers/') !== -1) {
+                var isLiveTeacher = false;
+                var currentTeacherSlug = '';
+                activeSlugs.forEach(function(slug) {
+                    if (currentPath.indexOf(slug) !== -1) {
+                        isLiveTeacher = true;
+                        currentTeacherSlug = slug;
+                    }
+                });
+
+                var consultPrice = document.querySelector('.consult-teacher-desc-price');
+                var consultBtn = document.querySelector('.button-buy-consult');
+                var modal = document.getElementById('callback_4');
+
+                if (isLiveTeacher) {
+                    if (consultPrice) consultPrice.innerText = '4900 р/час';
+
+                    if (modal && !document.getElementById('emko-gc-iframe')) {
+                        var iframe = document.createElement('iframe');
+                        iframe.id = 'emko-gc-iframe';
+                        iframe.src = 'https://course.emko.academy/pl/lite/widget/widget?id=1628250';
+                        iframe.setAttribute('scrolling', 'auto');
+                        modal.querySelector('.modal__content').appendChild(iframe);
+                    }
+
+                    if (consultBtn) {
+                        consultBtn.addEventListener('click', function() {
+                            // Сохраняем метку в Cookie для перехвата редиректа после оплаты
+                            document.cookie = 'emko_order_type=consultation; domain=.emko.academy; path=/; max-age=86400';
+                            document.cookie = 'emko_teacher_slug=' + currentTeacherSlug + '; domain=.emko.academy; path=/; max-age=86400';
+                            try {
+                                localStorage.setItem('emko_order_type', 'consultation');
+                                localStorage.setItem('emko_teacher_slug', currentTeacherSlug);
+                            } catch(e) {}
+                        });
+                    }
+                } else if (consultBtn) {
+                    consultBtn.classList.add('btn-frozen');
+                    consultBtn.innerText = 'Расписание уточняется';
+                    consultBtn.removeAttribute('data-modal');
+                    consultBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                    });
+                }
+            }
+        });
+        </script>
+        <?php
     }
 }
 }

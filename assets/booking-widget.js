@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', function () {
+function initBookingWidget() {
     const root = document.querySelector('.emko-booking-widget');
     if (!root) return;
 
@@ -7,10 +7,32 @@ document.addEventListener('DOMContentLoaded', function () {
     // Parse URL params for GetCourse order pass-through
     const urlParams = new URLSearchParams(window.location.search);
     const preselectedTeacher = urlParams.get('teacher');
-    const prefillName = urlParams.get('name') || '';
-    const prefillEmail = urlParams.get('email') || '';
     const dealId = urlParams.get('deal_id') || urlParams.get('order_id') || urlParams.get('deal') || '';
     const isDemo = urlParams.has('demo') || urlParams.has('test') || urlParams.has('preview');
+
+    // Storage & Cookie Helpers (shared across .emko.academy subdomains)
+    function getSharedCookie(key) {
+        try {
+            const match = document.cookie.match(new RegExp('(?:^|;\\s*)' + key + '=([^;]+)'));
+            return match ? decodeURIComponent(match[1]) : '';
+        } catch (e) { return ''; }
+    }
+
+    function saveUserData(key, val) {
+        if (!val || typeof val !== 'string') return;
+        const cleanVal = val.trim();
+        if (!cleanVal) return;
+        try {
+            localStorage.setItem(key, cleanVal);
+            sessionStorage.setItem(key, cleanVal);
+            const host = window.location.hostname;
+            const domain = host.includes('emko.academy') ? '; domain=.emko.academy' : '';
+            document.cookie = key + '=' + encodeURIComponent(cleanVal) + '; path=/; max-age=2592000' + domain;
+        } catch (e) {}
+    }
+
+    // Always tag visitor on consultation booking page
+    saveUserData('emko_order_type', 'consultation');
 
     let prefillPhone = urlParams.get('phone') || urlParams.get('user_phone') || '';
     if (!prefillPhone) {
@@ -19,6 +41,43 @@ document.addEventListener('DOMContentLoaded', function () {
             prefillPhone = '+' + rawMatch[1];
         }
     }
+    // Fallback to browser storage
+    if (!prefillPhone) {
+        prefillPhone = localStorage.getItem('emko_user_phone') || sessionStorage.getItem('emko_user_phone') || getSharedCookie('emko_user_phone') || '';
+    }
+
+    let prefillName = urlParams.get('name') || urlParams.get('user_name') || urlParams.get('client_name') || urlParams.get('student_name') || '';
+    if (!prefillName) {
+        prefillName = localStorage.getItem('emko_user_name') || sessionStorage.getItem('emko_user_name') || getSharedCookie('emko_user_name') || '';
+    }
+
+    let prefillEmail = urlParams.get('email') || '';
+    if (!prefillEmail) {
+        prefillEmail = localStorage.getItem('emko_user_email') || sessionStorage.getItem('emko_user_email') || getSharedCookie('emko_user_email') || '';
+    }
+
+    // Persist discovered values
+    if (prefillPhone) saveUserData('emko_user_phone', prefillPhone);
+    if (prefillName) saveUserData('emko_user_name', prefillName);
+    if (prefillEmail) saveUserData('emko_user_email', prefillEmail);
+
+    // Auto-capture phone/name/email typed anywhere on page
+    document.addEventListener('input', function (e) {
+        const el = e.target;
+        if (!el || !el.value) return;
+        const n = ((el.name || '') + ' ' + (el.id || '') + ' ' + (el.className || '')).toLowerCase();
+        const t = (el.type || '').toLowerCase();
+        if (t === 'tel' || n.includes('phone')) {
+            saveUserData('emko_user_phone', el.value);
+            state.phone = el.value;
+        } else if (t === 'email' || n.includes('email')) {
+            saveUserData('emko_user_email', el.value);
+            state.email = el.value;
+        } else if (n.includes('name') && !n.includes('username')) {
+            saveUserData('emko_user_name', el.value);
+            state.name = el.value;
+        }
+    }, true);
 
     // Timezone detection
     const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Moscow';
@@ -250,22 +309,13 @@ document.addEventListener('DOMContentLoaded', function () {
         root.querySelector('#emko-form-details').innerHTML = 
             `<strong>${state.teacher.name}</strong> • ${state.dateFormatted || state.date}<br>${timeHtml}`;
 
-        // Deal Badge
-        const dealBadge = root.querySelector('#emko-deal-badge');
-        if (dealBadge) {
-            if (state.dealId) {
-                dealBadge.style.display = 'block';
-                dealBadge.innerHTML = `✓ Заказ №${state.dealId} подтвержден в GetCourse`;
-            } else if (isDemo) {
-                dealBadge.style.display = 'block';
-                dealBadge.innerHTML = `ℹ️ Тестовый демонстрационный режим (без GetCourse)`;
-            } else {
-                dealBadge.style.display = 'none';
-            }
-        }
 
         // Populate prefill fields
+        if (!state.name) {
+            state.name = localStorage.getItem('emko_user_name') || sessionStorage.getItem('emko_user_name') || getSharedCookie('emko_user_name') || '';
+        }
         if (state.name) root.querySelector('#emko-input-name').value = state.name;
+
         if (state.email) {
             const emailInput = root.querySelector('#emko-input-email');
             emailInput.value = state.email;
@@ -275,7 +325,21 @@ document.addEventListener('DOMContentLoaded', function () {
                 emailInput.style.backgroundColor = '#f9fafb';
             }
         }
+
+        if (!state.phone) {
+            state.phone = localStorage.getItem('emko_user_phone') || sessionStorage.getItem('emko_user_phone') || getSharedCookie('emko_user_phone') || '';
+        }
         if (state.phone) root.querySelector('#emko-input-phone').value = state.phone;
+
+        // Save on edit
+        root.querySelector('#emko-input-phone')?.addEventListener('input', (e) => {
+            state.phone = e.target.value;
+            saveUserData('emko_user_phone', e.target.value);
+        });
+        root.querySelector('#emko-input-name')?.addEventListener('input', (e) => {
+            state.name = e.target.value;
+            saveUserData('emko_user_name', e.target.value);
+        });
 
         showStep(stepForm);
     }
@@ -395,4 +459,10 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     loadTeachers();
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initBookingWidget);
+} else {
+    initBookingWidget();
+}

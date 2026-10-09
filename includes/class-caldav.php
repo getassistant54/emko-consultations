@@ -87,23 +87,61 @@ class Emko_CalDAV_Client {
         }
 
         $calendars = array();
-        if (preg_match_all('/<D:response>(.*?)<\/D:response>/is', $res['body'], $responses)) {
+        $normHome = rtrim(urldecode($homePath), '/');
+
+        // Поддерживаем любые префиксы неймспейсов: <d:response>, <D:response>, <response>
+        if (preg_match_all('/<(?:[a-zA-Z0-9]+:)?response\b[^>]*>(.*?)<\/(?:[a-zA-Z0-9]+:)?response>/is', $res['body'], $responses)) {
             foreach ($responses[1] as $respXml) {
-                // Ищем только календари с VEVENT
-                if (strpos($respXml, 'VEVENT') === false) {
+                // Извлекаем href
+                if (!preg_match('/<(?:[a-zA-Z0-9]+:)?href\b[^>]*>(.*?)<\/(?:[a-zA-Z0-9]+:)?href>/is', $respXml, $hrefMatch)) {
                     continue;
                 }
-                preg_match('/<D:href>(.*?)<\/D:href>/is', $respXml, $hrefMatch);
-                preg_match('/<D:displayname>(.*?)<\/D:displayname>/is', $respXml, $nameMatch);
+                $href = trim($hrefMatch[1]);
+                $normHref = rtrim(urldecode($href), '/');
 
-                if (!empty($hrefMatch[1])) {
-                    $href = trim($hrefMatch[1]);
-                    $name = !empty($nameMatch[1]) ? trim($nameMatch[1]) : basename(rtrim($href, '/'));
-                    $calendars[] = array(
-                        'href' => $href,
-                        'name' => html_entity_decode($name, ENT_QUOTES, 'UTF-8')
-                    );
+                // Пропускаем сам корневой каталог аккаунта
+                if (empty($href) || $normHref === $normHome) {
+                    continue;
                 }
+
+                // Пропускаем служебные outbox/inbox
+                if (stripos($href, 'inbox') !== false || stripos($href, 'outbox') !== false) {
+                    continue;
+                }
+
+                // Проверяем, является ли это календарем:
+                // 1) В resourcetype есть calendar
+                // 2) ИЛИ в XML есть calendar или VEVENT
+                // 3) ИЛИ в пути есть events- или это дочерняя папка
+                $isCalendar = false;
+                if (preg_match('/<(?:[a-zA-Z0-9]+:)?resourcetype\b[^>]*>(.*?)<\/(?:[a-zA-Z0-9]+:)?resourcetype>/is', $respXml, $resTypeMatch)) {
+                    if (stripos($resTypeMatch[1], 'calendar') !== false) {
+                        $isCalendar = true;
+                    }
+                }
+                if (!$isCalendar) {
+                    if (stripos($respXml, 'calendar') !== false || stripos($respXml, 'VEVENT') !== false || stripos($href, '/events-') !== false) {
+                        $isCalendar = true;
+                    }
+                }
+
+                if (!$isCalendar) {
+                    continue;
+                }
+
+                // Извлекаем displayname
+                $name = '';
+                if (preg_match('/<(?:[a-zA-Z0-9]+:)?displayname\b[^>]*>(.*?)<\/(?:[a-zA-Z0-9]+:)?displayname>/is', $respXml, $nameMatch)) {
+                    $name = trim($nameMatch[1]);
+                }
+                if (empty($name)) {
+                    $name = basename($normHref);
+                }
+
+                $calendars[] = array(
+                    'href' => $href,
+                    'name' => html_entity_decode($name, ENT_QUOTES, 'UTF-8')
+                );
             }
         }
         return $calendars;
