@@ -81,16 +81,16 @@ class Emko_Booking_API {
         $busyIntervals = array();
         if (!empty($yandexEmail) && !empty($yandexPass) && !empty($calHref)) {
             $calClient = new Emko_CalDAV_Client($yandexEmail, $yandexPass);
-            $dayStartIso = $dateStr . ' 00:00:00';
-            $dayEndIso   = $dateStr . ' 23:59:59';
+            $dayStartIso = $dateStr . ' 00:00:00 +03:00';
+            $dayEndIso   = $dateStr . ' 23:59:59 +03:00';
             $busyIntervals = $calClient->get_busy_intervals($calHref, $dayStartIso, $dayEndIso);
         }
 
-        // Поддержка перерыва/исключения внутри дня (например, с 12:00 до 15:00)
+        // Поддержка перерыва/исключения внутри дня (например, с 12:00 до 15:00 по Москве)
         if (!empty($dayConfig['break_start']) && !empty($dayConfig['break_end'])) {
             $busyIntervals[] = array(
-                'start' => strtotime($dateStr . ' ' . $dayConfig['break_start']),
-                'end'   => strtotime($dateStr . ' ' . $dayConfig['break_end'])
+                'start' => strtotime($dateStr . ' ' . $dayConfig['break_start'] . ' +03:00'),
+                'end'   => strtotime($dateStr . ' ' . $dayConfig['break_end'] . ' +03:00')
             );
         }
 
@@ -109,17 +109,17 @@ class Emko_Booking_API {
             }
         }
 
-        // Генерируем слоты в таймзоне сайта
-        $tzOffset    = get_option('gmt_offset', 3) * 3600; // по умолчанию МСК (UTC+3)
+        // Генерируем слоты в таймзоне Москвы (UTC+3)
+        $tzOffset    = 3 * 3600; // МСК (UTC+3)
         $stepSeconds = ($duration + $buffer) * 60;
-        $nowTs       = time() + $tzOffset;
+        $nowTs       = time(); // Текущий UTC UNIX timestamp
 
         $slots = array();
         $seenSlots = array();
 
         foreach ($workIntervals as $interval) {
-            $wStartTs = strtotime($dateStr . ' ' . $interval['start']);
-            $wEndTs   = strtotime($dateStr . ' ' . $interval['end']);
+            $wStartTs = strtotime($dateStr . ' ' . $interval['start'] . ' +03:00');
+            $wEndTs   = strtotime($dateStr . ' ' . $interval['end'] . ' +03:00');
 
             for ($slotStart = $wStartTs; $slotStart + ($duration * 60) <= $wEndTs; $slotStart += $stepSeconds) {
                 $slotEnd = $slotStart + ($duration * 60);
@@ -138,7 +138,7 @@ class Emko_Booking_API {
                     }
                 }
 
-                $slotTime = date('H:i', $slotStart);
+                $slotTime = gmdate('H:i', $slotStart + $tzOffset);
                 if (!$isBusy && !isset($seenSlots[$slotTime])) {
                     $seenSlots[$slotTime] = true;
                     $slots[] = array(
@@ -204,7 +204,7 @@ class Emko_Booking_API {
 
         $dealId       = sanitize_text_field($params['deal_id'] ?? '');
         $telemostUrl = $bookingResult['telemost_url'];
-        $datetimeStr = date('d.m.Y H:i', $slotTs);
+        $datetimeStr = gmdate('d.m.Y H:i', $slotTs + (3 * 3600));
 
         // 2. Отправляем в GetCourse (обновляем сделку)
         $gcAccount = get_option('emko_getcourse_account');

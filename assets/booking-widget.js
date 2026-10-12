@@ -143,9 +143,17 @@ function initBookingWidget() {
                 return;
             }
 
-            // Auto-select if passed in URL or if only 1 teacher exists
+            // Auto-select if passed in URL (by ID, slug, or name) or if only 1 teacher exists
             if (preselectedTeacher) {
-                const found = teachers.find(t => t.id === preselectedTeacher);
+                const paramLower = preselectedTeacher.toLowerCase().replace(/_/g, '-');
+                const found = teachers.find(t => {
+                    if (t.id === preselectedTeacher) return true;
+                    const nameLower = (t.name || '').toLowerCase();
+                    if (paramLower.includes('kelo') && nameLower.includes('кело')) return true;
+                    if (paramLower.includes('demidov') && nameLower.includes('демидов')) return true;
+                    if (paramLower.includes('laskin') && nameLower.includes('ласкин')) return true;
+                    return false;
+                });
                 if (found) {
                     selectTeacher(found);
                     return;
