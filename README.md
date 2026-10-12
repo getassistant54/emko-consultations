@@ -4,6 +4,7 @@
 - 🔗 **Связка сервисов:** WordPress + Яндекс Календарь (CalDAV) + Яндекс Телемост + GetCourse (Deals API).
 - 💰 **Стоимость содержания:** **0 рублей/месяц** (без сторонних сервисов записи и без платных тарифов Яндекс 360).
 - 🔄 **GitHub репозиторий:** `getassistant54/emko-consultations`
+- 📑 **Официальный регламент и протокол интеграции:** [docs/INTEGRATION_PROTOCOL.md](docs/INTEGRATION_PROTOCOL.md)
 
 ---
 
