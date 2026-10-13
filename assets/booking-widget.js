@@ -191,6 +191,17 @@ function initBookingWidget() {
         state.teacher = t;
         root.querySelector('#emko-selected-teacher-name').textContent = t.name;
         root.querySelector('#emko-selected-teacher-meta').textContent = `${t.role ? t.role + ' • ' : ''}${t.duration} минут`;
+
+        // If teacher is preselected (e.g. from paid order or URL), hide "Выбрать другого преподавателя"
+        const backToTeacherBtn = root.querySelector('#emko-back-to-teacher');
+        if (backToTeacherBtn) {
+            if (preselectedTeacher) {
+                backToTeacherBtn.style.display = 'none';
+            } else {
+                backToTeacherBtn.style.display = 'inline-block';
+            }
+        }
+
         generateDateStrip();
         showStep(stepDateTime);
     }

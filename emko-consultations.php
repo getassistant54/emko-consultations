@@ -3,7 +3,7 @@
  * Plugin Name: Emko Consultations & Telemost Booking
  * Plugin URI:  https://emko.academy
  * Description: Запись на консультации с автоматической интеграцией в Яндекс Календарь, Яндекс Телемост и GetCourse.
- * Version:     1.3.3
+ * Version:     1.3.4
  * Author:      ЁМКО
  * Text Domain: emko-consultations
  */
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('EMKO_BOOKING_VERSION', '1.3.3');
+define('EMKO_BOOKING_VERSION', '1.3.4');
 define('EMKO_BOOKING_DIR', plugin_dir_path(__FILE__));
 define('EMKO_BOOKING_URL', plugin_dir_url(__FILE__));
 
@@ -184,22 +184,23 @@ class Emko_Consultations_Plugin {
         <div class="emko-booking-widget">
             <!-- Step 0: Gate: Access via Paid Order or Link to Catalog -->
             <div id="emko-step-gate" class="emko-step">
-                <div class="emko-gate-card" style="text-align:center; padding: 32px 24px;">
-                    <div style="font-size: 40px; margin-bottom: 12px;">📅</div>
-                    <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 10px; color: #111827;">Запись на консультацию</h3>
-                    <p style="font-size: 15px; color: #4b5563; max-width: 480px; margin: 0 auto 24px; line-height: 1.5;">
-                        Выбор даты и времени встречи открывается автоматически после оформления и оплаты консультации.
+                <div class="emko-gate-card" style="text-align:center; padding: 36px 24px;">
+                    <div style="font-size: 44px; margin-bottom: 14px;">📅</div>
+                    <h3 style="font-size: 22px; font-weight: 700; margin-bottom: 12px; color: #111827;">Запись на консультацию</h3>
+                    <p style="font-size: 15px; color: #4b5563; max-width: 500px; margin: 0 auto 24px; line-height: 1.6;">
+                        Выбор даты и времени встречи доступен после выбора преподавателя и оплаты консультации.<br>
+                        Пожалуйста, выберите подходящего преподавателя и оформите консультацию на странице услуг.
                     </p>
 
                     <div style="margin-bottom: 24px;">
-                        <a href="https://emko.academy/consultations/" class="emko-btn-primary" style="display:inline-block; text-decoration:none; padding:14px 28px; font-size:15px; font-weight:600; border-radius:10px;">
-                            Перейти к выбору консультации →
+                        <a href="https://emko.academy/consultations/" class="emko-btn-primary" style="display:inline-block; text-decoration:none; padding:15px 32px; font-size:16px; font-weight:600; border-radius:10px; background:#83298B; color:#fff;">
+                            Выбрать преподавателя и оплатить →
                         </a>
                     </div>
 
-                    <div class="emko-gate-notice" style="margin-top:20px; text-align: left; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 16px; font-size: 13px; color: #6b7280; line-height: 1.5;">
-                        💡 <strong>Уже оплатили консультацию?</strong><br>
-                        Пожалуйста, перейдите по персональной ссылке для записи из письма или сообщения с подтверждением оплаты. Если ссылка не пришла, напишите в нашу службу заботы.
+                    <div class="emko-gate-notice" style="margin-top:24px; text-align: left; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 18px; font-size: 13px; color: #6b7280; line-height: 1.5; max-width: 500px; margin-left: auto; margin-right: auto;">
+                        💡 <strong>Вы уже оплатили консультацию?</strong><br>
+                        Перейдите по ссылке для выбора времени из письма или страницы после оплаты. Если ссылка не пришла или потерялась — напишите нам в поддержку, мы сразу поможем!
                     </div>
                 </div>
             </div>
