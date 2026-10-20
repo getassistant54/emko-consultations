@@ -38,6 +38,7 @@ class Emko_Booking_API {
                 $sanitized[] = array(
                     'id'          => $id,
                     'name'        => esc_html($t['name']),
+                    'slug'        => sanitize_title($t['name']),
                     'role'        => esc_html($t['role'] ?? ''),
                     'duration'    => intval($t['duration'] ?? 45),
                     'description' => esc_html($t['description'] ?? '')

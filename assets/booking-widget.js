@@ -145,13 +145,30 @@ function initBookingWidget() {
 
             // Auto-select if passed in URL (by ID, slug, or name) or if only 1 teacher exists
             if (preselectedTeacher) {
-                const paramLower = preselectedTeacher.toLowerCase().replace(/_/g, '-');
+                const paramClean = preselectedTeacher.toLowerCase().replace(/[^a-z0-9а-яё]/gi, '');
                 const found = teachers.find(t => {
                     if (t.id === preselectedTeacher) return true;
-                    const nameLower = (t.name || '').toLowerCase();
-                    if (paramLower.includes('kelo') && nameLower.includes('кело')) return true;
-                    if (paramLower.includes('demidov') && nameLower.includes('демидов')) return true;
-                    if (paramLower.includes('laskin') && nameLower.includes('ласкин')) return true;
+                    const nameClean = (t.name || '').toLowerCase().replace(/[^a-z0-9а-яё]/gi, '');
+                    if (nameClean && (nameClean.includes(paramClean) || paramClean.includes(nameClean))) return true;
+
+                    // Match individual words (e.g. surname, name)
+                    const words = (t.name || '').toLowerCase().split(/\s+/);
+                    for (const w of words) {
+                        const wordClean = w.replace(/[^a-z0-9а-яё]/gi, '');
+                        if (wordClean.length >= 3 && (paramClean.includes(wordClean) || wordClean.includes(paramClean))) return true;
+                    }
+
+                    // Universal transliteration matching (e.g. laskin <-> ласкин, demidov <-> демидов)
+                    const ruToEn = { 'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'yo','ж':'zh','з':'z','и':'i','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t','у':'u','ф':'f','х':'kh','ц':'ts','ч':'ch','ш':'sh','щ':'sch','ъ':'','ы':'y','ь':'','э':'e','ю':'yu','я':'ya' };
+                    let translit = '';
+                    const nLower = (t.name || '').toLowerCase();
+                    for (let i = 0; i < nLower.length; i++) {
+                        const ch = nLower[i];
+                        translit += ruToEn[ch] !== undefined ? ruToEn[ch] : ch;
+                    }
+                    const translitClean = translit.replace(/[^a-z0-9]/gi, '');
+                    if (translitClean && (translitClean.includes(paramClean) || paramClean.includes(translitClean))) return true;
+
                     return false;
                 });
                 if (found) {
