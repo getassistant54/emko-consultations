@@ -18,6 +18,12 @@ class Emko_CalDAV_Client {
 
     private function request($path, $method = 'PROPFIND', $body = '', $headers = array()) {
         $url = strpos($path, 'http') === 0 ? $path : $this->baseUrl . $path;
+
+        // Если аккаунт в настройках изменился, подставляем текущий актуальный email пользователя в путь календаря
+        if (strpos($url, '/calendars/') !== false && !empty($this->email)) {
+            $currentAccEncoded = rawurlencode($this->email);
+            $url = preg_replace('#/calendars/[^/]+/#', '/calendars/' . $currentAccEncoded . '/', $url);
+        }
         
         $defaultHeaders = array(
             'Authorization' => 'Basic ' . $this->auth,

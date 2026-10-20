@@ -53,6 +53,18 @@ class Emko_Admin_Settings {
                 update_option('emko_yandex_app_password', sanitize_text_field($_POST['yandex_password']));
             }
 
+            // Автоматически обновляем список доступных календарей под новый аккаунт Яндекса
+            if (!empty($email)) {
+                $pwd = !empty($_POST['yandex_password']) ? sanitize_text_field($_POST['yandex_password']) : get_option('emko_yandex_app_password');
+                if (!empty($pwd)) {
+                    $calClient = new Emko_CalDAV_Client($email, $pwd);
+                    $newCals = $calClient->get_calendars();
+                    if (!empty($newCals)) {
+                        update_option('emko_cached_calendars', $newCals);
+                    }
+                }
+            }
+
             update_option('emko_getcourse_account', sanitize_text_field($_POST['getcourse_account'] ?? ''));
 
             if (!empty($_POST['getcourse_key'])) {
