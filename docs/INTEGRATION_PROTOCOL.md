@@ -103,14 +103,14 @@ document.addEventListener('input', function(e) {
 
 ---
 
-### Скрипт №2: Авторедирект консультаций со страницы успеха
+### Скрипт №2: Авторедирект консультаций со страницы успеха (Динамическая синхронизация с WP)
 * **Где размещается:** GetCourse ➔ **Сайт ➔ Страницы ➔ Системные ➔ dealPaid** (Страница «Спасибо за оплату заказа»). Вставляется как блок **Javascript** (`xdget_javascript`).
-* **Почему пропал:** На странице `dealPaid` 5 октября стоял рабочий блок `r1701_1_1`. Во время редизайна страницы «Спасибо» 8-9 октября (когда настраивались блоки `.emko-pay-card`) системная страница была пересохранена без этого блока.
+* **Принцип 100% динамики:** В скрипте **нет жестко зашитых ID или имен учителей**! Скрипт сам прямо в момент редиректа делает легкий запрос к API WordPress (`/wp-json/emko-booking/v1/teachers`), получает актуальный список активных преподавателей и автоматически сопоставляет нужного по ID, фамилии или имени из заказа/куки.
 * **Логика работы:**
   1. Читает `deal_id` из URL страницы (`/dealPaid/{id}`).
-  2. Проверяет наличие Cookie `emko_order_type === 'consultation'`. Если есть — делает редирект мгновенно.
-  3. Если клиент платил с другого устройства или инкогнито — делает фоновый `fetch` информации о заказе и ищет слово `консультац`.
-  4. **Если это обычный курс — скрипт НЕ вмешивается**, ученик спокойно видит стандартную страницу курса.
+  2. Проверяет наличие Cookie `emko_order_type === 'consultation'` или слова `консультац` в составе заказа.
+  3. **Если это обычный курс — скрипт НЕ вмешивается**, ученик спокойно видит стандартную страницу курса.
+  4. Если это консультация — запрашивает `/wp-json/emko-booking/v1/teachers`, находит точный `teacher_...` ID и бесшовно редиректит на `/zapis-na-konsultacziyu/?deal_id=...&teacher=teacher_...`.
 * **Код скрипта для блока Javascript на странице dealPaid:**
 ```html
 <script>
@@ -136,33 +136,97 @@ document.addEventListener('input', function(e) {
     var orderType = getStored('emko_order_type');
     var checkUrl = '/sales/shop/dealPay/id/' + paidDealId + (hash ? '/hash/' + hash : '');
 
-    function proceedRedirect(email) {
-        // Очищаем одноразовую метку консультации
+    // Универсальная функция поиска преподавателя среди динамического списка из WP
+    function matchTeacher(teachers, searchContext) {
+        if (!teachers || !teachers.length || !searchContext) return null;
+        var s = searchContext.toLowerCase();
+
+        // 1. Поиск по прямому ID
+        for (var i = 0; i < teachers.length; i++) {
+            if (teachers[i].id && s.indexOf(teachers[i].id.toLowerCase()) !== -1) {
+                return teachers[i];
+            }
+        }
+
+        // 2. Поиск по фамилии, имени и транслитерации слага
+        var ruToEn = { 'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'yo','ж':'zh','з':'z','и':'i','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t','у':'u','ф':'f','х':'kh','ц':'ts','ч':'ch','ш':'sh','щ':'sch','ъ':'','ы':'y','ь':'','э':'e','ю':'yu','я':'ya' };
+
+        for (var i = 0; i < teachers.length; i++) {
+            var t = teachers[i];
+            var name = (t.name || '').toLowerCase();
+            if (t.slug && s.indexOf(t.slug.toLowerCase()) !== -1) return t;
+
+            var translit = '';
+            for (var c = 0; c < name.length; c++) {
+                translit += ruToEn[name[c]] !== undefined ? ruToEn[name[c]] : name[c];
+            }
+
+            var words = name.split(/\s+/);
+            for (var w = 0; w < words.length; w++) {
+                var cleanWord = words[w].replace(/[^а-яёa-z0-9]/gi, '');
+                if (cleanWord.length >= 3 && s.indexOf(cleanWord) !== -1) return t;
+            }
+
+            var cleanTranslit = translit.replace(/[^a-z0-9]/gi, '');
+            var cleanSearch = s.replace(/[^a-z0-9]/gi, '');
+            if (cleanTranslit.length >= 4 && (cleanSearch.indexOf(cleanTranslit) !== -1 || cleanTranslit.indexOf(cleanSearch) !== -1)) {
+                return t;
+            }
+        }
+        return null;
+    }
+
+    function proceedRedirect(email, dealHtml) {
         try { localStorage.removeItem('emko_order_type'); } catch(e) {}
         document.cookie = 'emko_order_type=; domain=.emko.academy; path=/; max-age=0';
 
         var savedPhone = getStored('emko_user_phone');
         var savedName = getStored('emko_user_name');
-        var teacherSlug = getStored('emko_teacher_slug');
+        var savedTeacher = getStored('emko_teacher_slug') || getStored('emko_consultation_teacher');
 
-        var emailParam = email ? '&email=' + encodeURIComponent(email) : '';
-        var phoneParam = savedPhone ? '&phone=' + encodeURIComponent(savedPhone) : '';
-        var nameParam = savedName ? '&name=' + encodeURIComponent(savedName) : '';
-        var teacherParam = teacherSlug ? '&teacher=' + encodeURIComponent(teacherSlug) : '';
-
-        // Фирменное уведомление перед переходом
         var banner = document.createElement('div');
         banner.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:#83298B;color:#fff;text-align:center;padding:16px;font-size:18px;font-weight:700;z-index:999999;box-shadow:0 4px 15px rgba(0,0,0,0.2);';
         banner.innerText = 'Оплата принята! Перенаправляем на выбор времени консультации...';
         document.body.appendChild(banner);
 
-        setTimeout(function() {
-            window.location.href = 'https://emko.academy/zapis-na-konsultacziyu/?deal_id=' + paidDealId + emailParam + phoneParam + nameParam + teacherParam;
-        }, 1200);
+        // Динамический вызов API сайта WordPress
+        fetch('https://emko.academy/wp-json/emko-booking/v1/teachers')
+            .then(function(r) { return r.json(); })
+            .then(function(teachers) {
+                var searchContext = (savedTeacher + ' ' + (dealHtml || '')).toLowerCase();
+                var matched = matchTeacher(teachers, searchContext);
+                var teacherParam = matched ? '&teacher=' + encodeURIComponent(matched.id) : '';
+
+                var emailParam = email ? '&email=' + encodeURIComponent(email) : '';
+                var phoneParam = savedPhone ? '&phone=' + encodeURIComponent(savedPhone) : '';
+                var nameParam = savedName ? '&name=' + encodeURIComponent(savedName) : '';
+
+                setTimeout(function() {
+                    window.location.href = 'https://emko.academy/zapis-na-konsultacziyu/?deal_id=' + paidDealId + emailParam + phoneParam + nameParam + teacherParam;
+                }, 1000);
+            })
+            .catch(function() {
+                var emailParam = email ? '&email=' + encodeURIComponent(email) : '';
+                var phoneParam = savedPhone ? '&phone=' + encodeURIComponent(savedPhone) : '';
+                var nameParam = savedName ? '&name=' + encodeURIComponent(savedName) : '';
+                var fallbackTeacher = savedTeacher ? '&teacher=' + encodeURIComponent(savedTeacher) : '';
+                setTimeout(function() {
+                    window.location.href = 'https://emko.academy/zapis-na-konsultacziyu/?deal_id=' + paidDealId + emailParam + phoneParam + nameParam + fallbackTeacher;
+                }, 1000);
+            });
     }
 
     if (orderType === 'consultation') {
-        proceedRedirect('');
+        fetch(checkUrl)
+            .then(function(res) { return res.text(); })
+            .then(function(html) {
+                var emailMatch = html.match(/[\w.-]+@[\w.-]+\.[a-zA-Z]{2,}/);
+                var email = emailMatch ? emailMatch[0] : '';
+                proceedRedirect(email, html);
+            })
+            .catch(function() {
+                proceedRedirect('', '');
+            });
         return;
     }
 
@@ -174,7 +238,7 @@ document.addEventListener('input', function(e) {
             if (isConsultation) {
                 var emailMatch = html.match(/[\w.-]+@[\w.-]+\.[a-zA-Z]{2,}/);
                 var email = emailMatch ? emailMatch[0] : '';
-                proceedRedirect(email);
+                proceedRedirect(email, html);
             }
         })
         .catch(function(e) { console.log('Check error:', e); });
