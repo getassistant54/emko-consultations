@@ -116,10 +116,3 @@ if (!fs.existsSync(distDir)) fs.mkdirSync(distDir, { recursive: true });
 const distZip = path.join(distDir, 'emko-consultations.zip');
 createZip(files, distZip);
 
-const geminiZip = 'd:\\РАБОТА\\ЕМКО-АНИМАЦИЯ\\Gemini\\emko-consultations.zip';
-try {
-    fs.copyFileSync(distZip, geminiZip);
-    console.log(`[COPY SUCCESS] Copied to ${geminiZip}`);
-} catch (e) {
-    console.log(`Could not copy to Gemini folder: ${e.message}`);
-}
